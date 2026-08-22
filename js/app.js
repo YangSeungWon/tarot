@@ -338,9 +338,7 @@ function finish() {
   el.autoBtn.disabled = true;
   renderReading();
   saveLog();
-  // 마지막 카드가 뒤집히는 걸 보고 나서 해석으로 내려갑니다.
-  setTimeout(() => el.reading.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-             calm() ? 500 : 1100);
+  el.reading.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function syncCounter() {
