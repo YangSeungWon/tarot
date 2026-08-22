@@ -8,6 +8,7 @@ const LOG_MAX = 20;
 
 const el = {
   fan: $('#fan'), scroll: $('#fan-scroll'), swipe: $('#fan-swipe'),
+  stage: $('.fan-stage'),
   hint: $('#fan-hint'), counter: $('#counter'),
   board: $('#board'), reading: $('#reading'), actions: $('#actions'),
   toast: $('#toast'),
@@ -54,8 +55,13 @@ const label = card => card.en;
    호 위의 자리는 평행이동(--tx/--ty)으로 잡습니다. 이렇게 두면
    섞는 동작(모으기·자르기)과 펼친 상태 사이가 그대로 보간됩니다.
    ──────────────────────────────────────────────────────────── */
-const THETA   = () => (window.innerWidth < 760 ? 14 : 23);   // 부채 반각(도)
-const MIN_GAP = () => (window.innerWidth < 760 ? 11 : 14);   // 카드 한 장이 보이는 최소 폭
+// 좁은 화면에서는 부채 대신 '돌려서 고르는 띠'를 씁니다.
+const isRail = () => window.innerWidth < 760;
+const RAIL = { gap: 30, rot: 30, drop: 44, R: 165, top: 46, bottom: 74, tMax: 1.7, tDrop: 1.25 };
+let rail = null, railRaf = 0, centerIdx = -1, railLo = 0, railHi = -1;
+
+const THETA   = () => 23;                                   // 부채 반각(도)
+const MIN_GAP = () => 14;                                   // 카드 한 장이 보이는 최소 폭
 const rad = deg => deg * Math.PI / 180;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -70,7 +76,7 @@ function fanGeometry(n, cardW, cardH, avail) {
   const spread = gap * (n - 1);            // 양 끝 카드 중심 사이 거리
   const d = spread / (2 * Math.sin(t));    // 호의 반지름
   // 뽑을 때 들어올린 카드가 잘리지 않도록 윗여백을 잡습니다(--draw-lift + 회전 여유).
-  const top = window.innerWidth < 760 ? 54 : 72;
+  const top = 72;
   const sag = d * (1 - Math.cos(t))                // 끝으로 갈수록 내려앉는 양
             + (cardH / 2) * Math.cos(t) + (cardW / 2) * Math.sin(t) - cardH / 2;
 
@@ -106,6 +112,93 @@ function applySeats() {
   el.swipe.hidden = el.scroll.scrollWidth <= el.scroll.clientWidth + 1;
 }
 
+/* ── 돌려서 고르는 띠 (모바일) ────────────────────────────────
+   카드 자리는 스크롤이 정하고, 가운데에서 멀어질수록 기울고 내려앉게
+   해서 톱니처럼 이어 보이게 합니다. 위치는 계산으로만 구합니다
+   (매 프레임 getBoundingClientRect를 부르면 레이아웃이 튑니다).
+   ──────────────────────────────────────────────────────────── */
+function layoutRail() {
+  const cards = [...el.fan.children];
+  if (!cards.length) return;
+  const cw = cards[0].offsetWidth, ch = cards[0].offsetHeight;
+  const stageW = el.scroll.clientWidth;
+  const pad = Math.max(0, stageW / 2 - cw / 2);
+
+  rail = { n: cards.length, cw, gap: RAIL.gap, pad, stageW };
+  el.fan.style.width = '';
+  el.fan.style.height = '';
+  el.fan.style.setProperty('--rail-gap', RAIL.gap + 'px');
+  el.fan.style.setProperty('--rail-pad', pad + 'px');
+  el.fan.style.setProperty('--rail-top', RAIL.top + 'px');
+  el.fan.style.setProperty('--rail-bottom', RAIL.bottom + 'px');
+  // 표식은 .fan-stage 기준이라 버튼 줄 높이까지 더해야 카드에 맞습니다.
+  el.stage.style.setProperty('--mark-top', (el.scroll.offsetTop + RAIL.top - 6) + 'px');
+  cards.forEach(b => { b.dataset.far = '1'; });
+  railLo = 0; railHi = cards.length - 1; centerIdx = -1;
+  centerOn(Math.floor(cards.length / 2), false);
+  railTick();
+}
+
+function railTick() {
+  railRaf = 0;
+  if (!rail) return;
+  const cards = el.fan.children;
+  const { cw, gap, pad, stageW, n } = rail;
+  const c = el.scroll.scrollLeft + stageW / 2;      // 가운데 자리의 띠 좌표
+  const span = Math.ceil((stageW / 2 + cw) / gap) + 1;
+  const mid = (c - pad - cw / 2) / gap;
+  const lo = Math.max(0, Math.floor(mid - span));
+  const hi = Math.min(n - 1, Math.ceil(mid + span));
+
+  for (let i = railLo; i <= railHi; i++)                 // 화면 밖으로 나간 카드는 재웁니다
+    if ((i < lo || i > hi) && cards[i]) cards[i].dataset.far = '1';
+  for (let i = lo; i <= hi; i++) {
+    const b = cards[i];
+    if (!b) continue;
+    if (b.dataset.far) delete b.dataset.far;
+    const d = pad + cw / 2 + i * gap - c;
+    const t = Math.max(-RAIL.tMax, Math.min(RAIL.tMax, d / RAIL.R));
+    const td = Math.max(-RAIL.tDrop, Math.min(RAIL.tDrop, t));   // 아래로 잘리지 않게
+    b.style.setProperty('--ra', (t * RAIL.rot).toFixed(2) + 'deg');
+    b.style.setProperty('--ry', (td * td * RAIL.drop).toFixed(1) + 'px');
+    b.style.setProperty('--rs', (1 - Math.min(Math.abs(t), 1.5) * 0.05).toFixed(3));
+    b.style.setProperty('--z', Math.round(400 - Math.abs(d)));
+  }
+  railLo = lo; railHi = hi;
+
+  const near = Math.max(0, Math.min(n - 1, Math.round(mid)));
+  if (near !== centerIdx) {
+    cards[centerIdx]?.classList.remove('is-center');
+    centerIdx = near;
+    cards[centerIdx]?.classList.add('is-center');
+  }
+}
+
+function centerOn(i, smooth) {
+  if (!rail) return;
+  const left = rail.pad + rail.cw / 2 + i * rail.gap - rail.stageW / 2;
+  el.scroll.scrollTo(smooth && !calm() ? { left, behavior: 'smooth' } : { left });
+}
+
+// 띠를 크게 한 바퀴 돌려 새 자리에 세웁니다. 섞기의 마지막 박자입니다.
+function spinRail() {
+  if (!rail) return Promise.resolve();
+  let i = rnd(rail.n);
+  if (Math.abs(i - centerIdx) < 25) i = (centerIdx + 26 + rnd(26)) % rail.n;
+  const to = rail.pad + rail.cw / 2 + i * rail.gap - rail.stageW / 2;
+  if (calm()) { el.scroll.scrollLeft = to; return Promise.resolve(); }
+
+  const from = el.scroll.scrollLeft, t0 = performance.now(), dur = 950;
+  return new Promise(res => {
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur);
+      el.scroll.scrollLeft = from + (to - from) * (1 - Math.pow(1 - k, 3));
+      if (k < 1) requestAnimationFrame(step); else res();
+    };
+    requestAnimationFrame(step);
+  });
+}
+
 function renderFan() {
   const n = CARDS.length;
   el.fan.innerHTML = '';
@@ -122,14 +215,37 @@ function renderFan() {
     b.style.setProperty('--sd', (i * 5) + 'ms');   // 섞은 뒤 펼침 시차
     b.setAttribute('aria-label', `왼쪽에서 ${i + 1}번째 카드 뽑기`);
     b.innerHTML = '<svg><use href="#cardback"/></svg>';
-    b.addEventListener('click', e => take(b, e));
+    b.addEventListener('click', e => pick(b, e));
     frag.appendChild(b);
   }
   el.fan.appendChild(frag);
-  applySeats();
+  relayout();
+}
+
+// 띠에서는 가운데 자리에 온 카드만 뽑힙니다. 다른 카드를 누르면 그 카드를
+// 가운데로 돌려놓습니다. 손가락으로 정확히 짚기 어려운 화면이라서입니다.
+function pick(btn, ev) {
+  if (!isRail()) return take(btn, ev);
+  const i = +btn.dataset.n;
+  if (i === centerIdx) take(btn, ev);
+  else centerOn(i, true);
+}
+
+function relayout() {
+  const railMode = isRail();
+  el.stage.classList.toggle('is-rail', railMode);
+  el.scroll.classList.toggle('is-rail', railMode);
+  el.fan.classList.toggle('is-rail', railMode);
+  if (railMode) { layoutRail(); el.swipe.hidden = true; }
+  else {
+    rail = null; centerIdx = -1;
+    [...el.fan.children].forEach(b => { delete b.dataset.far; b.classList.remove('is-center'); });
+    applySeats();
+  }
 }
 
 const LIFT_MS = () => (calm() ? 260 : 380);
+const hintLead = () => isRail() ? '돌려서 가운데로 놓고 누르세요' : '덱에서 카드를 고르세요';
 
 // 카드가 빠져나가는 동안 hover를 잠급니다. 포인터가 실제로 움직이면 풀립니다.
 let hoverArmed = null;
@@ -183,7 +299,9 @@ async function autoDraw() {
   while (state.drawn.length < total) {
     const free = [...el.fan.children].filter(b => !b.classList.contains('is-drawing'));
     if (!free.length) break;
-    take(free[crypto.getRandomValues(new Uint32Array(1))[0] % free.length]);
+    const b = free[rnd(free.length)];
+    if (isRail()) { centerOn(+b.dataset.n, true); await wait(calm() ? 0 : 400); }
+    take(b);
     await wait(calm() ? 300 : 340);
   }
   await wait(LIFT_MS() + 40);
@@ -235,12 +353,36 @@ async function shuffleDeck() {
   el.fan.classList.add('is-busy');
   const n = CARDS.length;
 
+  // 180도 돌릴 뭉치. 보이는 뭉치가 곧 역방향이 되는 카드들입니다.
+  // 역방향을 끄면 돌리지 않고, 순서만 자릅니다.
+  const chunk = useRev ? pickChunk() : 0;
+  const cutAt = useRev ? n - chunk : 26 + rnd(27);
+
+  // 띠에서는 카드를 옮겨 쌓을 자리가 없습니다. 어두워지고 → 뭉치가 돌고
+  // → 띠가 크게 한 바퀴 돌아 새 자리에 서는 것으로 같은 세 박자를 냅니다.
+  if (isRail()) {
+    markStack(cutAt, useRev);
+    el.fan.classList.add('s-gather');
+    await wait(calm() ? 260 : 420);
+    el.fan.classList.add('s-cut');
+    await wait(calm() ? 200 : 780);
+    el.fan.classList.remove('s-cut');
+    state.deck = shuffled(chunk);
+    await spinRail();
+    el.fan.classList.add('s-spread');
+    el.fan.classList.remove('s-gather');
+    await wait(calm() ? 200 : 520);
+    el.fan.classList.remove('s-spread');
+    finishShuffle();
+    return;
+  }
+
   // 동작 줄이기 설정에서는 옮기는 대신 밝기로 같은 이야기를 합니다.
   // 덱 전체가 한 번 어두워졌다가, 왼쪽부터 차례로 되살아납니다.
   if (calm()) {
     el.fan.classList.add('s-gather');
     await wait(500);
-    state.deck = shuffled(useRev ? undefined : 0);
+    state.deck = shuffled(chunk);
     [...el.fan.children].forEach((b, i) => { b.style.setProperty('--z', i); });
     el.fan.classList.add('s-spread');
     el.fan.classList.remove('s-gather');
@@ -250,10 +392,6 @@ async function shuffleDeck() {
     return;
   }
 
-  // 180도 돌릴 뭉치. 보이는 뭉치가 곧 역방향이 되는 카드들입니다.
-  // 역방향을 끄면 돌리지 않고, 순서만 자릅니다.
-  const chunk = useRev ? pickChunk() : 0;
-  const cutAt = useRev ? n - chunk : 26 + rnd(27);
   markStack(cutAt, useRev);
 
   el.fan.classList.add('s-gather');            // 1. 모으기
@@ -280,7 +418,7 @@ function finishShuffle() {
   el.fan.classList.remove('is-busy');
   el.shuffleBtn.disabled = false;
   el.autoBtn.disabled = false;
-  el.hint.innerHTML = '덱에서 카드를 고르세요 <b id="counter"></b>';
+  el.hint.innerHTML = `${hintLead()} <b id="counter"></b>`;
   el.counter = $('#counter');
   syncCounter();
   state.busy = false;
@@ -395,7 +533,7 @@ function syncCounter() {
 /* ── 새 판 ──────────────────────────────────────────────── */
 function reset(key = state.key) {
   state = { key, deck: shuffled(useRev ? undefined : 0), drawn: [], done: false, busy: false, auto: false };
-  el.hint.innerHTML = '덱에서 카드를 고르세요 <b id="counter"></b>';
+  el.hint.innerHTML = `${hintLead()} <b id="counter"></b>`;
   el.counter = $('#counter');
   el.reading.innerHTML = '';
   el.actions.hidden = true;
@@ -532,10 +670,14 @@ el.logList.addEventListener('click', e => {
   if (parsed) { restore(parsed); el.reading.scrollIntoView({ behavior: 'smooth' }); }
 });
 
+el.scroll.addEventListener('scroll', () => {
+  if (rail && !railRaf) railRaf = requestAnimationFrame(railTick);
+}, { passive: true });
+
 let rt;
 window.addEventListener('resize', () => {
   clearTimeout(rt);
-  rt = setTimeout(() => { if (!state.busy) applySeats(); }, 180);
+  rt = setTimeout(() => { if (!state.busy) relayout(); }, 180);
 });
 
 /* ── 시작 ───────────────────────────────────────────────── */
