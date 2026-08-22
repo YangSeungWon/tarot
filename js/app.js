@@ -5,6 +5,7 @@ const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X',
                'XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
 const SPREAD_ORDER = ['one','three','celtic'];
 const LOG_KEY = 'tarot.log.v1';
+const REV_KEY = 'tarot.reversals.v1';
 const LOG_MAX = 20;
 
 const el = {
@@ -13,23 +14,37 @@ const el = {
   board: $('#board'), reading: $('#reading'), actions: $('#actions'),
   toast: $('#toast'),
   log: $('#log'), logList: $('#log-list'),
-  shuffleBtn: $('#btn-shuffle'), autoBtn: $('#btn-auto'),
+  shuffleBtn: $('#btn-shuffle'), autoBtn: $('#btn-auto'), revBtn: $('#btn-rev'),
 };
+
+let useRev = true;
+try { useRev = localStorage.getItem(REV_KEY) !== 'off'; } catch {}
 
 let state = { key:'one', deck:[], drawn:[], done:false, busy:false, auto:false };
 
 /* ── 덱 ──────────────────────────────────────────────────── */
-// 섞기 = 78개 자리에 78장을 배치하는 일. 한 번 섞으면 어느 자리에
-// 무엇이 어느 방향으로 놓였는지가 전부 결정되고, 뽑을 때 바뀌지 않습니다.
-function shuffled() {
-  const a = CARDS.map((_, i) => i);
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  const flips = new Uint8Array(a.length);
-  crypto.getRandomValues(flips);
-  return a.map((idx, i) => ({ idx, rev: flips[i] < 96 }));  // 역방향 약 37%
+const rnd = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+
+function fisherYates(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// 리더가 덱을 다루는 순서 그대로입니다.
+//   1. 덱을 정방향으로 바로잡고
+//   2. 충분히 섞고
+//   3. 한 뭉치를 덜어 180도 돌려 합치고 (그 뭉치가 통째로 역방향이 됩니다)
+//   4. 다시 섞습니다
+// 방향은 3번의 뭉치 크기가 정하고, 순서는 피셔–예이츠라 균등합니다.
+// 한 번 섞으면 어느 자리에 무엇이 어느 방향으로 놓였는지가 전부 결정되고,
+// 뽑을 때 바뀌지 않습니다.
+const CHUNK_MIN = 10, CHUNK_MAX = 30;      // 78장의 13~38%, 평균 약 26%
+const pickChunk = () => CHUNK_MIN + rnd(CHUNK_MAX - CHUNK_MIN + 1);
+
+function shuffled(chunk = pickChunk()) {
+  const order = fisherYates(CARDS.map((_, i) => i));
+  const deck = order.map((idx, i) => ({ idx, rev: i >= order.length - chunk }));
+  return fisherYates(deck);
 }
 
 // 제목 옆에 붙는 표식. 카드에 실제로 인쇄된 것을 씁니다.
@@ -184,7 +199,7 @@ async function autoDraw() {
    모으기 → 자르기 → 펼치기. 리더가 실제로 덱을 다루는 순서입니다.
    자르는 지점은 매번 새로 정합니다.
    ──────────────────────────────────────────────────────────── */
-function markStack(cutAt) {
+function markStack(cutAt, spin) {
   const n = CARDS.length;
   [...el.fan.children].forEach((b, i) => {
     // 78장이 한 벌로 포개진 두께. 위로 갈수록 조금씩 밀려 올라가고,
@@ -198,6 +213,7 @@ function markStack(cutAt) {
     b.style.setProperty('--cx', (upper ? 80 : -80) + 'px');
     b.style.setProperty('--cy', (upper ? -12 : 5) + 'px');
     b.dataset.upper = upper ? '1' : '';
+    if (upper && spin) b.dataset.spin = '1'; else delete b.dataset.spin;
   });
   return n;
 }
@@ -226,7 +242,7 @@ async function shuffleDeck() {
   if (calm()) {
     el.fan.classList.add('s-gather');
     await wait(500);
-    state.deck = shuffled();
+    state.deck = shuffled(useRev ? undefined : 0);
     [...el.fan.children].forEach((b, i) => { b.style.setProperty('--z', i); });
     el.fan.classList.add('s-spread');
     el.fan.classList.remove('s-gather');
@@ -236,13 +252,16 @@ async function shuffleDeck() {
     return;
   }
 
-  const cutAt = 26 + (crypto.getRandomValues(new Uint32Array(1))[0] % 27);  // 26~52
-  markStack(cutAt);
+  // 180도 돌릴 뭉치. 보이는 뭉치가 곧 역방향이 되는 카드들입니다.
+  // 역방향을 끄면 돌리지 않고, 순서만 자릅니다.
+  const chunk = useRev ? pickChunk() : 0;
+  const cutAt = useRev ? n - chunk : 26 + rnd(27);
+  markStack(cutAt, useRev);
 
   el.fan.classList.add('s-gather');            // 1. 모으기
   await wait(640);
-  el.fan.classList.add('s-cut');               // 2. 자르기 — 갈라놓고
-  await wait(560);
+  el.fan.classList.add('s-cut');               // 2. 덜어내서 180도 돌리고
+  await wait(900);
   // 두 뭉치가 떨어져 있는 동안 위아래를 맞바꿉니다 (겹치지 않아 티가 안 납니다)
   [...el.fan.children].forEach((b, i) => {
     b.style.setProperty('--z', b.dataset.upper ? i - cutAt : i + (n - cutAt));
@@ -250,7 +269,7 @@ async function shuffleDeck() {
   el.fan.classList.remove('s-cut');            //    다시 한 벌로 포개고
   await wait(560);
 
-  state.deck = shuffled();
+  state.deck = shuffled(chunk);
   [...el.fan.children].forEach((b, i) => { b.style.setProperty('--z', i); });
   el.fan.classList.add('s-spread');            // 3. 펼치기
   el.fan.classList.remove('s-gather');
@@ -372,7 +391,7 @@ function syncCounter() {
 
 /* ── 새 판 ──────────────────────────────────────────────── */
 function reset(key = state.key) {
-  state = { key, deck: shuffled(), drawn: [], done: false, busy: false, auto: false };
+  state = { key, deck: shuffled(useRev ? undefined : 0), drawn: [], done: false, busy: false, auto: false };
   el.hint.innerHTML = '덱에서 카드를 고르세요 <b id="counter"></b>';
   el.counter = $('#counter');
   el.reading.innerHTML = '';
@@ -464,6 +483,26 @@ document.querySelectorAll('.spread-btn').forEach(b =>
 
 el.shuffleBtn.addEventListener('click', shuffleDeck);
 el.autoBtn.addEventListener('click', autoDraw);
+
+function syncRevBtn() {
+  el.revBtn.textContent = useRev ? '역방향 켬' : '역방향 끔';
+  el.revBtn.classList.toggle('is-on', useRev);
+  el.revBtn.setAttribute('aria-pressed', String(useRev));
+}
+el.revBtn.addEventListener('click', () => {
+  if (state.busy || state.auto) return;
+  useRev = !useRev;
+  try { localStorage.setItem(REV_KEY, useRev ? 'on' : 'off'); } catch {}
+  syncRevBtn();
+  // 아직 아무것도 안 뽑았으면 덱을 조용히 다시 놓고, 아니면 다음 섞기부터
+  if (!state.drawn.length && !state.done) {
+    state.deck = shuffled(useRev ? undefined : 0);
+    toast(useRev ? '역방향을 씁니다' : '전부 정방향으로 놓았습니다');
+  } else {
+    toast('다음 섞기부터 적용됩니다');
+  }
+});
+syncRevBtn();
 
 $('#btn-share').addEventListener('click', async () => {
   const url = `${location.origin}${location.pathname}#r=${encode()}`;

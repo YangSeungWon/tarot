@@ -178,6 +178,13 @@ button{ font:inherit; color:inherit; }
   transition-duration:.42s;
   transition-timing-function:cubic-bezier(.32,0,.24,1);
 }
+/* 덜어낸 뭉치를 180도 돌립니다. 뒷면 무늬는 180도 대칭이라 끝나고 나면
+   돌기 전과 같아 보이지만, 도는 동작 자체가 이 리딩의 역방향을 정합니다. */
+@keyframes spin180{ from{ transform:rotate(0deg); } to{ transform:rotate(180deg); } }
+.fan.s-cut .fan-card[data-spin] svg{
+  animation:spin180 .52s cubic-bezier(.38,0,.2,1) .34s both;
+}
+
 /* 3. 펼치기 — 왼쪽부터 차례로 리본을 긋듯 */
 .fan.s-spread .fan-card{
   transition-duration:.62s;
@@ -197,12 +204,17 @@ button{ font:inherit; color:inherit; }
   gap:clamp(.6rem,2vw,1.25rem); flex-wrap:wrap;
   margin:0 0 clamp(1rem,3vw,1.75rem);
 }
-.fan-btns{ display:flex; gap:.5rem; }
+.fan-btns{ display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; }
 .fan-hint{ font-size:.85rem; color:var(--mist); letter-spacing:.02em; }
 .fan-hint b{
   font-family:var(--f-body); font-weight:500; font-size:.85rem;
   font-variant-numeric:tabular-nums;
   color:var(--gilt); margin-left:.45rem; letter-spacing:.08em;
+}
+.btn-toggle{ border-style:dashed; }
+.btn-toggle.is-on{
+  border-style:solid; border-color:var(--gilt-lo);
+  color:var(--parchment); background:rgba(201,162,39,.07);
 }
 .btn[disabled]{ opacity:.4; cursor:default; }
 .btn[disabled]:hover{ border-color:var(--veil-line); color:var(--parchment-dim); background:transparent; }
@@ -490,6 +502,7 @@ button{ font:inherit; color:inherit; }
   .fan .fan-card.is-taken{ opacity:0; }
   /* 섞기 — 덱 전체가 어두워졌다가 되살아납니다 */
   .fan.s-gather .fan-card{ opacity:.12; }
+  .fan.s-cut .fan-card[data-spin] svg{ animation:none; }
 
   /* 뒤집기 — 회전 대신 뒷면이 걷힙니다 */
   .card-wrap{ transform:none !important; }
