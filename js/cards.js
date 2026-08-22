@@ -325,9 +325,9 @@ export const CARDS = [
 ];
 
 export const SPREADS = {
-  one: { name:'원 카드', desc:'오늘 하루, 혹은 하나의 질문에 대한 답', positions:['지금 이 순간'] },
-  three: { name:'쓰리 카드', desc:'흐름을 읽는 가장 기본적인 배열', positions:['과거','현재','미래'] },
-  celtic: { name:'켈틱 크로스', desc:'상황 전체를 입체적으로 보는 정통 10장 배열',
+  one: { name:'원 카드', positions:['지금 이 순간'] },
+  three: { name:'쓰리 카드', positions:['과거','현재','미래'] },
+  celtic: { name:'켈틱 크로스',
     positions:['현재 상황','장애물','토대(무의식)','과거','목표(의식)','가까운 미래',
                '나의 태도','주변 환경','희망과 두려움','최종 결과'] },
 };

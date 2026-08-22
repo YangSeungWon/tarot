@@ -22,7 +22,9 @@
   --card-w: clamp(96px, 15vw, 132px);
   --ratio: 0.6;
   --card-h: calc(var(--card-w) / var(--ratio));
-  --fan-top: 38px;   /* js가 덮어씁니다 */
+  --fan-top: 72px;    /* js가 덮어씁니다 */
+  --draw-lift: 52px;  /* 뽑을 때 들어올리는 높이 */
+  --draw-exit: 92px;  /* 배치판으로 넘어가며 빠져나가는 높이 */
   --ease: cubic-bezier(.22,.61,.36,1);
 }
 
@@ -54,16 +56,11 @@ button{ font:inherit; color:inherit; }
 /* ── 머리말 ───────────────────────────────────────────────── */
 .masthead{
   text-align:center;
-  padding:clamp(3rem,9vw,6rem) 1.25rem clamp(1.5rem,4vw,2.5rem);
-}
-.eyebrow{
-  font-family:var(--f-latin);
-  font-size:.82rem; letter-spacing:.34em; text-transform:uppercase;
-  color:var(--gilt); opacity:.8;
+  padding:clamp(3rem,9vw,5rem) 1.25rem clamp(1.75rem,4vw,2.5rem);
 }
 .wordmark{
   display:flex; align-items:baseline; justify-content:center;
-  gap:.7em; margin:.45em 0 .5em;
+  gap:.7em; margin:0;
 }
 .wordmark-ko{
   font-family:var(--f-display); font-weight:700;
@@ -76,8 +73,6 @@ button{ font:inherit; color:inherit; }
   font-size:clamp(1rem,2.6vw,1.5rem); letter-spacing:.22em;
   color:var(--mist);
 }
-.lede{ color:var(--parchment-dim); font-size:.95rem; }
-
 /* ── 스프레드 선택 ────────────────────────────────────────── */
 .table{ padding:0 1rem; }
 .spreadbar{
@@ -101,10 +96,6 @@ button{ font:inherit; color:inherit; }
 .spread-btn.is-on{
   background:rgba(201,162,39,.09);
   border-color:var(--gilt); color:var(--parchment);
-}
-.spread-desc{
-  text-align:center; color:var(--mist);
-  font-size:.85rem; margin-top:.85rem;
 }
 
 /* ── 시그니처: 78장 부채꼴 덱 ─────────────────────────────────
@@ -139,9 +130,17 @@ button{ font:inherit; color:inherit; }
   filter:drop-shadow(0 12px 22px rgba(201,162,39,.4));
   z-index:200;
 }
+/* 뽑기: 호에서 한 번 들어 세운 뒤(is-drawing), 배치판으로 넘어갑니다(is-taken) */
+.fan .fan-card.is-drawing{
+  z-index:300; pointer-events:none;
+  transform:translate(var(--tx, 0px), calc(var(--ty, 0px) - var(--draw-lift))) rotate(0deg) scale(1.05);
+  transition:transform .4s cubic-bezier(.18,.74,.24,1), filter .4s;
+  filter:drop-shadow(0 20px 30px rgba(201,162,39,.42));
+}
 .fan .fan-card.is-taken{
   opacity:0; pointer-events:none;
-  transform:translate(var(--tx, 0px), calc(var(--ty, 0px) - 56px)) rotate(var(--a, 0deg)) scale(.8);
+  transform:translate(var(--tx, 0px), calc(var(--ty, 0px) - var(--draw-exit))) rotate(0deg) scale(.84);
+  transition:transform .44s cubic-bezier(.42,0,.72,1), opacity .4s;
 }
 .fan.is-done .fan-card{ opacity:.16; pointer-events:none; }
 
@@ -176,7 +175,7 @@ button{ font:inherit; color:inherit; }
 }
 
 .fan-swipe{
-  text-align:center; margin-top:.85rem;
+  text-align:center; margin-top:1rem;
   font-size:.72rem; letter-spacing:.08em; color:var(--mist); opacity:.75;
 }
 .fan-swipe::before{ content:"↔  "; color:var(--gilt); }
@@ -184,9 +183,10 @@ button{ font:inherit; color:inherit; }
 
 .fan-tools{
   display:flex; align-items:center; justify-content:center;
-  gap:clamp(.75rem,3vw,1.75rem); flex-wrap:wrap;
-  margin-top:1.25rem;
+  gap:clamp(.6rem,2vw,1.25rem); flex-wrap:wrap;
+  margin:0 0 clamp(1rem,3vw,1.75rem);
 }
+.fan-btns{ display:flex; gap:.5rem; }
 .fan-hint{ font-size:.85rem; color:var(--mist); letter-spacing:.02em; }
 .fan-hint b{
   font-family:var(--f-body); font-weight:500; font-size:.85rem;
@@ -430,7 +430,8 @@ button{ font:inherit; color:inherit; }
 
 /* ── 반응형 ───────────────────────────────────────────────── */
 @media (max-width:760px){
-  :root{ --card-w:clamp(74px,23vw,104px); }
+  :root{ --card-w:clamp(74px,23vw,104px); --draw-lift:38px; --draw-exit:70px; }
+  .fan-tools{ flex-direction:column; gap:.85rem; }
   .board[data-spread="three"]{ grid-template-columns:repeat(3,auto); }
   .board[data-spread="celtic"]{
     grid-template-columns:repeat(2,auto);
