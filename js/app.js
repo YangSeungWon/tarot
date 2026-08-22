@@ -57,7 +57,9 @@ const label = card => card.en;
    ──────────────────────────────────────────────────────────── */
 // 좁은 화면에서는 부채 대신 '돌려서 고르는 띠'를 씁니다.
 const isRail = () => window.innerWidth < 760;
-const RAIL = { gap: 30, rot: 30, drop: 44, R: 165, top: 46, bottom: 74, tMax: 1.7, tDrop: 1.25 };
+// gap이 곧 감도입니다. 손가락이 400px 움직였을 때 지나가는 장수 = 400/gap.
+// R은 기울기가 최대가 되는 거리 — 화면 절반쯤에서 30도가 되도록 맞춥니다.
+const RAIL = { gap: 56, rot: 30, drop: 44, R: 200, top: 46, bottom: 74, tMax: 1.7, tDrop: 1.25 };
 let rail = null, railRaf = 0, centerIdx = -1, railLo = 0, railHi = -1;
 
 const THETA   = () => 23;                                   // 부채 반각(도)
@@ -495,7 +497,8 @@ function finish() {
   el.autoBtn.disabled = true;
   renderReading();
   saveLog();
-  scrollToReading();
+  // 카드가 자리에 놓이고(0.38초) 뒤집히기 시작하는 것까지 보고 내려갑니다.
+  setTimeout(scrollToReading, calm() ? 300 : 700);
 }
 
 // 기본 smooth 스크롤은 거리가 멀수록 길어집니다. 거리와 무관하게 짧게 끝냅니다.
