@@ -1,8 +1,6 @@
 import { CARDS, SPREADS } from './cards.js';
 
 const $ = (s, r = document) => r.querySelector(s);
-const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X',
-               'XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
 const SPREAD_ORDER = ['one','three','celtic'];
 const LOG_KEY = 'tarot.log.v1';
 const REV_KEY = 'tarot.reversals.v1';
@@ -48,11 +46,8 @@ function shuffled(chunk = pickChunk()) {
   return fisherYates(deck);
 }
 
-// 제목 옆에 붙는 표식. 카드에 실제로 인쇄된 것을 씁니다.
-// 메이저는 로마숫자, 마이너는 영문 이름 — 한글 이름과 겹치지 않게.
-function label(card) {
-  return card.arcana === 'major' ? ROMAN[card.num] : card.en;
-}
+// 제목 옆에 붙는 표식. 카드 아래쪽에 인쇄된 영문 이름을 그대로 씁니다.
+const label = card => card.en;
 
 /* ── 부채꼴 덱 ───────────────────────────────────────────────
    78장을 전부 펼칩니다. 카드는 자기 중심을 축으로 회전하고,
