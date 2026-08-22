@@ -14,9 +14,10 @@ const el = {
   board: $('#board'), reading: $('#reading'), actions: $('#actions'),
   desc: $('#spread-desc'), toast: $('#toast'),
   log: $('#log'), logList: $('#log-list'),
+  shuffleBtn: $('#btn-shuffle'),
 };
 
-let state = { key:'one', deck:[], drawn:[], done:false };
+let state = { key:'one', deck:[], drawn:[], done:false, busy:false };
 
 /* ── 덱 ──────────────────────────────────────────────────── */
 // 섞기 = 78개 자리에 78장을 배치하는 일. 한 번 섞으면 어느 자리에
@@ -39,68 +40,86 @@ function label(card) {
 }
 
 /* ── 부채꼴 덱 ───────────────────────────────────────────────
-   78장을 전부 펼칩니다. 카드 한 장이 보이는 폭(gap)에 하한을 두고,
-   그만큼도 안 되면 부채가 컨테이너보다 넓어지면서 가로 스크롤이 생깁니다.
+   78장을 전부 펼칩니다. 카드는 자기 중심을 축으로 회전하고,
+   호 위의 자리는 평행이동(--tx/--ty)으로 잡습니다. 이렇게 두면
+   섞는 동작(모으기·자르기)과 펼친 상태 사이가 그대로 보간됩니다.
    ──────────────────────────────────────────────────────────── */
-// 좁은 화면에서는 호를 완만하게 눕혀야 보이는 구간이 자연스럽습니다.
 const THETA   = () => (window.innerWidth < 760 ? 14 : 26);   // 부채 반각(도)
-const MIN_GAP = () => (window.innerWidth < 760 ? 11 : 14);
-const rad = d => d * Math.PI / 180;
+const MIN_GAP = () => (window.innerWidth < 760 ? 11 : 14);   // 카드 한 장이 보이는 최소 폭
+const rad = deg => deg * Math.PI / 180;
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // cardW/cardH는 CSS의 clamp()·calc() 결과라 커스텀 속성으로는 못 읽습니다.
 // 실제로 놓인 카드의 레이아웃 크기(transform 이전 값)를 재서 씁니다.
 function fanGeometry(n, cardW, cardH, avail) {
   const t = rad(THETA());
-  // 양 끝 카드는 THETA만큼 기울어져 있어 제 폭보다 옆으로 더 튀어나옵니다.
+  // 양 끝 카드는 기울어져 있어 제 폭보다 옆으로 더 튀어나옵니다.
   const overhang = (cardW / 2) * Math.cos(t) + (cardH / 2) * Math.sin(t) - cardW / 2;
-  const usable = avail - 2 * overhang;
+  const gap = Math.max(MIN_GAP(), (avail - 2 * overhang - cardW) / (n - 1));
+  const spread = gap * (n - 1);            // 양 끝 카드 중심 사이 거리
+  const d = spread / (2 * Math.sin(t));    // 호의 반지름
+  const top = window.innerWidth < 760 ? 28 : 38;   // 들어올릴 때 쓸 윗여백
+  const sag = d * (1 - Math.cos(t))                // 끝으로 갈수록 내려앉는 양
+            + (cardH / 2) * Math.cos(t) + (cardW / 2) * Math.sin(t) - cardH / 2;
 
-  const gap = Math.max(MIN_GAP(), (usable - cardW) / (n - 1));
-  const spread = gap * (n - 1);                       // 양 끝 카드 중심 사이 거리
-  const d = spread / (2 * Math.sin(t));               // 회전축까지의 거리
-  const drop = d * (1 - Math.cos(t))
-             + (cardH / 2) * Math.cos(t) + (cardW / 2) * Math.sin(t) - cardH / 2;
+  return { d, top, width: spread + cardW + 2 * overhang, height: top + cardH + sag,
+           stackY: (sag - top) / 2 };   // 모았을 때 한 벌이 세로 가운데 오도록
+}
 
-  return { width: spread + cardW + 2 * overhang, originY: cardH / 2 + d,
-           drop, height: cardH + drop + (window.innerWidth < 760 ? 28 : 38) };
+// 자리 i의 각도와 평행이동. 중심축 회전 + 이동으로 호 위의 위치를 만듭니다.
+function seat(i, n, d) {
+  const th = THETA();
+  const a = -th + (2 * th / (n - 1)) * i;
+  const r = rad(a);
+  return { a, tx: d * Math.sin(r), ty: d * (1 - Math.cos(r)) };
+}
+
+function applySeats() {
+  const n = CARDS.length;
+  const cards = [...el.fan.children];
+  if (!cards.length) return;
+  const avail = el.scroll.clientWidth - 8;
+  const g = fanGeometry(n, cards[0].offsetWidth, cards[0].offsetHeight, avail);
+  el.fan.style.width = g.width + 'px';
+  el.fan.style.height = g.height + 'px';
+  el.fan.style.setProperty('--fan-top', g.top + 'px');
+  el.fan.style.setProperty('--stack-y', g.stackY.toFixed(1) + 'px');
+  cards.forEach((b, i) => {
+    const p = seat(i, n, g.d);
+    b.style.setProperty('--a', p.a.toFixed(3) + 'deg');
+    b.style.setProperty('--tx', p.tx.toFixed(2) + 'px');
+    b.style.setProperty('--ty', p.ty.toFixed(2) + 'px');
+  });
+  el.scroll.scrollLeft = (el.scroll.scrollWidth - el.scroll.clientWidth) / 2;
+  el.swipe.hidden = el.scroll.scrollWidth <= el.scroll.clientWidth + 1;
 }
 
 function renderFan() {
   const n = CARDS.length;
-  const avail = el.scroll.clientWidth - 8;
   el.fan.innerHTML = '';
-  el.fan.classList.remove('is-done', 'is-collapsing');
+  el.fan.className = 'fan';
 
   const frag = document.createDocumentFragment();
   for (let i = 0; i < n; i++) {
-    const th = THETA();
-    const a = -th + (2 * th / (n - 1)) * i;
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'fan-card';
-    b.style.setProperty('--a', a.toFixed(3) + 'deg');
-    b.style.setProperty('--d', (i * 7) + 'ms');
-    b.style.zIndex = i;
     b.dataset.n = i;
+    b.style.zIndex = i;
+    b.style.setProperty('--d', (i * 5) + 'ms');    // 첫 펼침 시차
+    b.style.setProperty('--sd', (i * 5) + 'ms');   // 섞은 뒤 펼침 시차
     b.setAttribute('aria-label', `왼쪽에서 ${i + 1}번째 카드 뽑기`);
     b.innerHTML = '<svg><use href="#cardback"/></svg>';
     b.addEventListener('click', () => take(b));
     frag.appendChild(b);
   }
   el.fan.appendChild(frag);
-
-  const probe = el.fan.firstElementChild;
-  const g = fanGeometry(n, probe.offsetWidth, probe.offsetHeight, avail);
-  el.fan.style.width = g.width + 'px';
-  el.fan.style.height = g.height + 'px';
-  el.fan.style.setProperty('--origin-y', g.originY + 'px');
-  el.fan.style.setProperty('--fan-drop', g.drop + 'px');
-  el.scroll.scrollLeft = (el.scroll.scrollWidth - el.scroll.clientWidth) / 2;
-  el.swipe.hidden = el.scroll.scrollWidth <= el.scroll.clientWidth + 1;
+  applySeats();
 }
 
 function take(btn) {
-  if (state.done || btn.classList.contains('is-taken')) return;
+  if (state.done || state.busy || btn.classList.contains('is-taken')) return;
   // 카드는 섞는 순간 자리마다 확정됩니다. 여기서 새로 뽑는 것이 아니라,
   // 그 자리에 놓여 있던 장을 그대로 가져옵니다.
   const pick = state.deck[+btn.dataset.n];
@@ -112,6 +131,85 @@ function take(btn) {
   if (state.drawn.length === SPREADS[state.key].positions.length) finish();
 }
 
+/* ── 섞기 ────────────────────────────────────────────────────
+   모으기 → 자르기 → 펼치기. 리더가 실제로 덱을 다루는 순서입니다.
+   자르는 지점은 매번 새로 정합니다.
+   ──────────────────────────────────────────────────────────── */
+function markStack(cutAt) {
+  const n = CARDS.length;
+  [...el.fan.children].forEach((b, i) => {
+    // 78장이 한 벌로 포개진 두께. 위로 갈수록 조금씩 밀려 올라가고,
+    // 거기에 손으로 모은 만큼의 미세한 흐트러짐을 더합니다.
+    const lean = i / (n - 1);
+    b.style.setProperty('--jx', (lean * 5.5 - 2.75 + (((i * 37) % 5) - 2) * 0.35).toFixed(2) + 'px');
+    b.style.setProperty('--jy', (3.6 - lean * 7.2 + (((i * 53) % 5) - 2) * 0.3).toFixed(2) + 'px');
+    b.style.setProperty('--jr', (lean * 1.2 - 0.6 + (((i * 29) % 7) - 3) * 0.12).toFixed(2) + 'deg');
+    // 윗뭉치를 덜어 오른쪽에 내려놓습니다
+    const upper = i >= cutAt;
+    b.style.setProperty('--cx', (upper ? 80 : -80) + 'px');
+    b.style.setProperty('--cy', (upper ? -12 : 5) + 'px');
+    b.dataset.upper = upper ? '1' : '';
+  });
+  return n;
+}
+
+async function shuffleDeck() {
+  if (state.busy) return;
+  state.busy = true;
+  el.shuffleBtn.disabled = true;
+  history.replaceState(null, '', location.pathname + location.search);
+
+  // 판을 비웁니다
+  state.drawn = [];
+  state.done = false;
+  el.reading.innerHTML = '';
+  el.actions.hidden = true;
+  renderBoard();
+  el.fan.classList.remove('is-done');
+  [...el.fan.children].forEach(b => b.classList.remove('is-taken'));
+
+  if (calm()) {                       // 동작 줄이기 설정이면 바로 새 덱
+    state.deck = shuffled();
+    finishShuffle();
+    return;
+  }
+
+  el.hint.textContent = '덱을 섞는 중';
+  el.fan.classList.add('is-busy');
+
+  const n = CARDS.length;
+  const cutAt = 26 + (crypto.getRandomValues(new Uint32Array(1))[0] % 27);  // 26~52
+  markStack(cutAt);
+
+  el.fan.classList.add('s-gather');            // 1. 모으기
+  await wait(640);
+  el.fan.classList.add('s-cut');               // 2. 자르기 — 갈라놓고
+  await wait(560);
+  // 두 뭉치가 떨어져 있는 동안 위아래를 맞바꿉니다 (겹치지 않아 티가 안 납니다)
+  [...el.fan.children].forEach((b, i) => {
+    b.style.zIndex = b.dataset.upper ? i - cutAt : i + (n - cutAt);
+  });
+  el.fan.classList.remove('s-cut');            //    다시 한 벌로 포개고
+  await wait(560);
+
+  state.deck = shuffled();
+  [...el.fan.children].forEach((b, i) => { b.style.zIndex = i; });
+  el.fan.classList.add('s-spread');            // 3. 펼치기
+  el.fan.classList.remove('s-gather');
+  await wait(n * 5 + 640);
+  el.fan.classList.remove('s-spread');
+  finishShuffle();
+}
+
+function finishShuffle() {
+  el.fan.classList.remove('is-busy');
+  el.shuffleBtn.disabled = false;
+  el.hint.innerHTML = '덱에서 카드를 고르세요 <b id="counter"></b>';
+  el.counter = $('#counter');
+  syncCounter();
+  state.busy = false;
+}
+
 /* ── 배치판 ─────────────────────────────────────────────── */
 function renderBoard() {
   const spread = SPREADS[state.key];
@@ -120,9 +218,11 @@ function renderBoard() {
     <div class="slot" data-i="${i}">
       <span class="slot-label">${String(i + 1).padStart(2, '0')} <i>${pos}</i></span>
       <div class="slot-frame">
-        <div class="card">
-          <div class="card-face card-back"><svg><use href="#cardback"/></svg></div>
-          <div class="card-face card-front"></div>
+        <div class="card-wrap">
+          <div class="card">
+            <div class="card-face card-back"><svg><use href="#cardback"/></svg></div>
+            <div class="card-face card-front"></div>
+          </div>
         </div>
       </div>
       <p class="slot-caption"></p>
@@ -138,13 +238,15 @@ function fill(i, pick) {
     `<img src="assets/cards/${card.id}.webp" alt="${card.ko}" loading="lazy" decoding="async">`;
   $('.slot-caption', slot).innerHTML =
     `${card.ko}${pick.rev ? '<em>역방향</em>' : ''}`;
+  // 빈 자리에 카드가 먼저 놓이고(뒷면), 잠시 뒤 뒤집힙니다.
+  requestAnimationFrame(() => slot.classList.add('is-placing'));
+  setTimeout(() => slot.classList.add('is-filled'), 340);
   // 켈틱 크로스의 2번은 1번 위에 가로로 놓이므로 이름을 1번 캡션에 덧붙입니다.
   if (state.key === 'celtic' && i === 1) {
     const first = $('.slot[data-i="0"] .slot-caption', el.board);
     first.insertAdjacentHTML('beforeend',
       `<span class="cross-note">가로지름 · 장애물<br><b>${card.ko}</b>${pick.rev ? ' <i>역</i>' : ''}</span>`);
   }
-  requestAnimationFrame(() => slot.classList.add('is-filled'));
 }
 
 /* ── 해석 ───────────────────────────────────────────────── */
@@ -176,7 +278,8 @@ function finish() {
   el.actions.hidden = false;
   renderReading();
   saveLog();
-  el.reading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // 마지막 카드가 뒤집히는 걸 보고 나서 해석으로 내려갑니다.
+  setTimeout(() => el.reading.scrollIntoView({ behavior: 'smooth', block: 'start' }), 900);
 }
 
 function syncCounter() {
@@ -186,7 +289,7 @@ function syncCounter() {
 
 /* ── 새 판 ──────────────────────────────────────────────── */
 function reset(key = state.key) {
-  state = { key, deck: shuffled(), drawn: [], done: false };
+  state = { key, deck: shuffled(), drawn: [], done: false, busy: false };
   el.desc.textContent = SPREADS[key].desc;
   el.hint.innerHTML = '덱에서 카드를 고르세요 <b id="counter"></b>';
   el.counter = $('#counter');
@@ -275,12 +378,7 @@ document.querySelectorAll('.spread-btn').forEach(b =>
     reset(b.dataset.spread);
   }));
 
-$('#btn-shuffle').addEventListener('click', () => {
-  history.replaceState(null, '', location.pathname + location.search);
-  el.fan.classList.add('is-collapsing');
-  toast('덱을 섞었습니다');
-  setTimeout(() => reset(), 280);
-});
+el.shuffleBtn.addEventListener('click', shuffleDeck);
 
 $('#btn-share').addEventListener('click', async () => {
   const url = `${location.origin}${location.pathname}#r=${encode()}`;
@@ -310,7 +408,7 @@ el.logList.addEventListener('click', e => {
 let rt;
 window.addEventListener('resize', () => {
   clearTimeout(rt);
-  rt = setTimeout(() => { if (!state.drawn.length) renderFan(); }, 180);
+  rt = setTimeout(() => { if (!state.busy) applySeats(); }, 180);
 });
 
 /* ── 시작 ───────────────────────────────────────────────── */

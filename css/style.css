@@ -22,8 +22,7 @@
   --card-w: clamp(96px, 15vw, 132px);
   --ratio: 0.6;
   --card-h: calc(var(--card-w) / var(--ratio));
-  --origin-y: 700px;   /* js가 덮어씁니다 */
-  --fan-drop: 120px;
+  --fan-top: 38px;   /* js가 덮어씁니다 */
   --ease: cubic-bezier(.22,.61,.36,1);
 }
 
@@ -109,9 +108,9 @@ button{ font:inherit; color:inherit; }
 }
 
 /* ── 시그니처: 78장 부채꼴 덱 ─────────────────────────────────
-   호의 기하(회전축 거리·각도·처지는 양)는 컨테이너 폭에 맞춰
-   js/app.js에서 계산해 --origin-y / --fan-drop 으로 넣어줍니다.
-   좁은 화면에서는 부채가 화면보다 넓어져 가로로 밀어 볼 수 있습니다.
+   카드는 자기 중심을 축으로 회전하고, 호 위의 자리는 --tx/--ty 로
+   옮겨 놓습니다. (먼 회전축을 쓰면 섞는 동작과 보간이 어긋납니다.)
+   호의 기하는 컨테이너 폭에 맞춰 js/app.js가 계산합니다.
    ───────────────────────────────────────────────────────── */
 .fan-stage{ margin:clamp(1.25rem,3.5vw,2.25rem) auto 0; }
 .fan-scroll{
@@ -124,15 +123,14 @@ button{ font:inherit; color:inherit; }
 .fan{ position:relative; margin:0 auto; }
 
 .fan-card{
-  position:absolute; left:50%; bottom:var(--fan-drop);
+  position:absolute; left:50%; top:var(--fan-top);
   width:var(--card-w); height:var(--card-h);
   margin-left:calc(var(--card-w) / -2);
   padding:0; border:0; background:none; cursor:pointer;
-  transform-origin:50% var(--origin-y);
-  transform:rotate(var(--a)) translateY(var(--lift,0));
-  transition:transform .35s var(--ease), filter .25s, opacity .45s;
+  transform:translate(var(--tx, 0px), calc(var(--ty, 0px) + var(--lift, 0px))) rotate(var(--a, 0deg));
+  transition:transform .38s var(--ease), filter .25s, opacity .45s;
   filter:drop-shadow(-2px 2px 5px rgba(0,0,0,.55));
-  animation:deal .5s var(--ease) backwards;
+  animation:deal .58s var(--ease) backwards;
   animation-delay:var(--d);
 }
 .fan-card svg{ width:100%; height:100%; display:block; border-radius:5px; }
@@ -143,17 +141,38 @@ button{ font:inherit; color:inherit; }
 }
 .fan .fan-card.is-taken{
   opacity:0; pointer-events:none;
-  transform:rotate(var(--a)) translateY(-56px) scale(.8);
+  transform:translate(var(--tx, 0px), calc(var(--ty, 0px) - 56px)) rotate(var(--a, 0deg)) scale(.8);
 }
 .fan.is-done .fan-card{ opacity:.16; pointer-events:none; }
-/* 섞을 때: 한 번 모았다가 다시 펼칩니다 */
-.fan.is-collapsing .fan-card{
-  transform:rotate(0deg) translateY(26px) scale(.96);
-  opacity:.7; transition-duration:.26s;
-}
 
 @keyframes deal{
-  from{ transform:rotate(0deg) translateY(46px) scale(.92); opacity:0; }
+  from{ transform:translate(0,46px) scale(.92); opacity:0; }
+}
+
+/* ── 섞기: 모으기 → 자르기 → 펼치기 ──────────────────────────
+   타로 덱을 실제로 다루는 순서 그대로, 큰 동작 세 번으로만 갑니다.
+   튕기거나 흩어지는 이징은 쓰지 않습니다.
+   ───────────────────────────────────────────────────────── */
+.fan.is-busy .fan-card{ pointer-events:none; }
+
+/* 1. 모으기 — 한 벌로 가지런히 포갭니다 */
+.fan.s-gather .fan-card{
+  transform:translate(var(--jx, 0px), calc(var(--jy, 0px) + var(--stack-y, 0px))) rotate(var(--jr, 0deg));
+  transition-duration:.52s;
+  transition-timing-function:cubic-bezier(.4,0,.2,1);
+}
+/* 2. 자르기 — 위쪽 뭉치를 덜어 옆에 놓습니다 */
+.fan.s-cut .fan-card{
+  transform:translate(calc(var(--jx, 0px) + var(--cx, 0px)),
+                      calc(var(--jy, 0px) + var(--cy, 0px) + var(--stack-y, 0px))) rotate(var(--jr, 0deg));
+  transition-duration:.42s;
+  transition-timing-function:cubic-bezier(.32,0,.24,1);
+}
+/* 3. 펼치기 — 왼쪽부터 차례로 리본을 긋듯 */
+.fan.s-spread .fan-card{
+  transition-duration:.62s;
+  transition-delay:var(--sd);
+  transition-timing-function:cubic-bezier(.16,.72,.24,1);
 }
 
 .fan-swipe{
@@ -174,6 +193,8 @@ button{ font:inherit; color:inherit; }
   font-variant-numeric:tabular-nums;
   color:var(--gilt); margin-left:.45rem; letter-spacing:.08em;
 }
+.btn[disabled]{ opacity:.4; cursor:default; }
+.btn[disabled]:hover{ border-color:var(--veil-line); color:var(--parchment-dim); background:transparent; }
 
 /* ── 배치판 ───────────────────────────────────────────────── */
 .board{
@@ -221,22 +242,46 @@ button{ font:inherit; color:inherit; }
   font-style:normal; font-family:var(--f-body);
   font-size:.72rem; letter-spacing:.12em;
 }
+/* 빈 자리는 뒤집힌 카드가 아니라 '카드가 놓일 자리'로 보여야 합니다.
+   움푹한 판에 가는 테두리, 가운데 작은 표식. */
 .slot-frame{
   position:relative; width:100%; aspect-ratio:var(--ratio);
-  perspective:1200px;
 }
 .slot-frame::after{
-  content:""; position:absolute; inset:0;
-  border:1px dashed var(--veil-line); border-radius:6px;
-  transition:opacity .3s;
+  content:""; position:absolute; inset:0; border-radius:6px;
+  border:1px solid var(--veil-line);
+  background:rgba(0,0,0,.24);
+  box-shadow:inset 0 2px 12px rgba(0,0,0,.5);
+  transition:opacity .35s;
 }
-.slot.is-filled .slot-frame::after{ opacity:0; }
+.slot-frame::before{
+  content:""; position:absolute; left:50%; top:50%;
+  width:9px; height:9px; margin:-5px 0 0 -5px;
+  transform:rotate(45deg);
+  border:1px solid var(--gilt); opacity:.28;
+  transition:opacity .3s;
+  z-index:1;
+}
+.slot.is-placing .slot-frame::before{ opacity:0; }
+.slot.is-placing .slot-frame::after{ opacity:0; }
+
+/* 카드는 자리에 놓이는 순간 나타나고(뒷면), 그다음 뒤집힙니다.
+   등장(opacity)과 뒤집기(rotateY)를 다른 요소로 나눈 이유:
+   opacity < 1 인 요소는 preserve-3d 가 평탄화돼서 뒤집기 도중
+   앞뒷면이 뒤섞입니다. */
+.card-wrap{
+  position:absolute; inset:0; z-index:2;
+  perspective:1200px;
+  opacity:0; transform:translateY(-10px) scale(.94);
+  transition:transform .34s var(--ease), opacity .26s;
+}
+.slot.is-placing .card-wrap{ opacity:1; transform:none; }
 
 .card{
   position:absolute; inset:0;
   transform-style:preserve-3d;
   transform:rotateY(180deg);
-  transition:transform .85s var(--ease);
+  transition:transform .82s var(--ease);
 }
 .slot.is-filled .card{ transform:rotateY(0deg); }
 .card-face{
@@ -258,6 +303,7 @@ button{ font:inherit; color:inherit; }
   color:var(--parchment); opacity:0; transition:opacity .4s .5s;
 }
 .slot.is-filled .slot-caption{ opacity:1; }
+.slot-caption{ transition-delay:.7s; }
 .cross-note{
   display:block; margin-top:.35rem; padding-top:.35rem;
   border-top:1px solid var(--veil-line);
