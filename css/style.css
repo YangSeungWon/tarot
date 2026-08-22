@@ -152,7 +152,8 @@ button{ font:inherit; color:inherit; }
   transform:translate(var(--tx, 0px), calc(var(--ty, 0px) - var(--draw-exit))) rotate(0deg) scale(.84);
   transition:transform .44s cubic-bezier(.42,0,.72,1), opacity .4s;
 }
-.fan.is-done .fan-card{ opacity:.16; pointer-events:none; }
+.fan.is-done .fan-card{ pointer-events:none; }
+.fan.is-done .fan-card:not(.is-drawing){ opacity:.16; }
 
 @keyframes deal{
   from{ transform:translate(0,46px) scale(.92); opacity:0; }
@@ -364,7 +365,12 @@ button{ font:inherit; color:inherit; }
   padding:1.75rem 0; border-top:1px solid var(--veil-line);
 }
 .entry:first-of-type{ border-top:0; }
-.entry-thumb{ width:100%; border-radius:4px; display:block; }
+/* 이미지가 뜨기 전에도 높이가 확정돼야 합니다.
+   안 그러면 해석이 그려진 직후 문서가 짧아 스크롤이 클램프됩니다. */
+.entry-thumb{
+  width:100%; aspect-ratio:var(--ratio); object-fit:cover;
+  border-radius:4px; display:block; background:var(--ink-2);
+}
 .entry-thumb.is-rev{ transform:rotate(180deg); }
 .entry-pos{
   font-family:var(--f-body); font-size:.68rem; font-variant-numeric:tabular-nums;

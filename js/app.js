@@ -151,10 +151,11 @@ function take(btn, ev) {
   const at = state.drawn.length - 1;
   syncCounter();
 
-  setTimeout(() => {                     // 배치판으로 넘깁니다
+  if (at + 1 === total) finish();        // 기다리지 않고 곧바로 해석으로
+
+  setTimeout(() => {                     // 카드는 그동안 배치판으로 넘어갑니다
     btn.classList.add('is-taken');
     fill(at, pick);
-    if (at + 1 === total) finish();
   }, LIFT_MS());
 }
 
@@ -338,7 +339,31 @@ function finish() {
   el.autoBtn.disabled = true;
   renderReading();
   saveLog();
-  el.reading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  scrollToReading();
+}
+
+// 기본 smooth 스크롤은 거리가 멀수록 길어집니다. 거리와 무관하게 짧게 끝냅니다.
+function scrollToReading() {
+  const to = el.reading.getBoundingClientRect().top + window.scrollY;
+  if (calm()) { window.scrollTo(0, to); return; }
+
+  const from = window.scrollY, dist = to - from;
+  if (Math.abs(dist) < 4) return;
+
+  let stopped = false;
+  const stop = () => { stopped = true; };
+  addEventListener('wheel', stop, { once: true, passive: true });
+  addEventListener('touchstart', stop, { once: true, passive: true });
+
+  const t0 = performance.now();
+  const step = now => {
+    if (stopped) return;
+    const k = Math.min(1, (now - t0) / 380);
+    window.scrollTo(0, from + dist * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+    else { removeEventListener('wheel', stop); removeEventListener('touchstart', stop); }
+  };
+  requestAnimationFrame(step);
 }
 
 function syncCounter() {
