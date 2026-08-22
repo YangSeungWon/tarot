@@ -115,6 +115,7 @@ button{ font:inherit; color:inherit; }
 
 .fan-card{
   position:absolute; left:50%; top:var(--fan-top);
+  z-index:var(--z, 0);
   width:var(--card-w); height:var(--card-h);
   margin-left:calc(var(--card-w) / -2);
   padding:0; border:0; background:none; cursor:pointer;
@@ -137,6 +138,15 @@ button{ font:inherit; color:inherit; }
   transition:transform .4s cubic-bezier(.18,.74,.24,1), filter .4s;
   filter:drop-shadow(0 20px 30px rgba(201,162,39,.42));
 }
+/* 한 장이 빠져나가는 동안에는 커서 아래로 들어온 카드가 저절로 뜨지 않습니다.
+   포인터를 실제로 다시 움직여야 hover가 살아납니다. */
+.fan.no-hover .fan-card:hover,
+.fan.no-hover .fan-card:focus-visible{
+  --lift:0px;
+  z-index:var(--z, 0);
+  filter:drop-shadow(-2px 2px 5px rgba(0,0,0,.55));
+}
+
 .fan .fan-card.is-taken{
   opacity:0; pointer-events:none;
   transform:translate(var(--tx, 0px), calc(var(--ty, 0px) - var(--draw-exit))) rotate(0deg) scale(.84);
@@ -447,9 +457,39 @@ button{ font:inherit; color:inherit; }
   .wordmark{ flex-direction:column; align-items:center; gap:.2em; }
 }
 
+/* ── 동작 줄이기 ──────────────────────────────────────────────
+   움직임을 없애되 아무 일도 없었던 것처럼 보이면 안 됩니다.
+   이동과 회전을 전부 밝기 변화로 옮겨 적었습니다.
+   ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{
-    animation-duration:.01ms !important; animation-iteration-count:1 !important;
-    transition-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-property:opacity, filter, color, background-color, border-color, box-shadow !important;
+    transition-duration:.26s !important;
   }
+
+  /* 펼치기 — 자리는 그대로, 왼쪽부터 차례로 밝아집니다 */
+  @keyframes deal{ from{ opacity:0; } }
+  .fan-card{ animation-duration:.42s !important; }
+
+  /* 카드는 어떤 상태에서도 제 자리를 지킵니다 */
+  .fan .fan-card.is-drawing,
+  .fan .fan-card.is-taken,
+  .fan.s-gather .fan-card,
+  .fan.s-cut .fan-card{
+    transform:translate(var(--tx, 0px), var(--ty, 0px)) rotate(var(--a, 0deg)) !important;
+  }
+  /* 뽑기 — 들어올리는 대신 그 자리에서 한 번 빛나고 사라집니다 */
+  .fan .fan-card.is-drawing{ filter:drop-shadow(0 0 18px rgba(201,162,39,.8)); }
+  .fan .fan-card.is-taken{ opacity:0; }
+  /* 섞기 — 덱 전체가 어두워졌다가 되살아납니다 */
+  .fan.s-gather .fan-card{ opacity:.12; }
+
+  /* 뒤집기 — 회전 대신 뒷면이 걷힙니다 */
+  .card-wrap{ transform:none !important; }
+  .card{ transform:none !important; transform-style:flat; }
+  .card-face{ backface-visibility:visible; -webkit-backface-visibility:visible; }
+  .card-back{ transform:none !important; z-index:2; }
+  .card-front{ z-index:1; }
+  .slot.is-filled .card-back{ opacity:0; }
 }

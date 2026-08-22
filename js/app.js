@@ -107,21 +107,36 @@ function renderFan() {
     b.type = 'button';
     b.className = 'fan-card';
     b.dataset.n = i;
-    b.style.zIndex = i;
+    b.style.setProperty('--z', i);
     b.style.setProperty('--d', (i * 5) + 'ms');    // 첫 펼침 시차
     b.style.setProperty('--sd', (i * 5) + 'ms');   // 섞은 뒤 펼침 시차
     b.setAttribute('aria-label', `왼쪽에서 ${i + 1}번째 카드 뽑기`);
     b.innerHTML = '<svg><use href="#cardback"/></svg>';
-    b.addEventListener('click', () => take(b));
+    b.addEventListener('click', e => take(b, e));
     frag.appendChild(b);
   }
   el.fan.appendChild(frag);
   applySeats();
 }
 
-const LIFT_MS = () => (calm() ? 0 : 380);
+const LIFT_MS = () => (calm() ? 260 : 380);
 
-function take(btn) {
+// 카드가 빠져나가는 동안 hover를 잠급니다. 포인터가 실제로 움직이면 풀립니다.
+let hoverArmed = null;
+function holdHover(ev) {
+  el.fan.classList.add('no-hover');
+  if (hoverArmed) el.fan.removeEventListener('pointermove', hoverArmed);
+  const from = ev ? { x: ev.clientX, y: ev.clientY } : null;
+  hoverArmed = e => {
+    if (from && Math.hypot(e.clientX - from.x, e.clientY - from.y) < 8) return;
+    el.fan.classList.remove('no-hover');
+    el.fan.removeEventListener('pointermove', hoverArmed);
+    hoverArmed = null;
+  };
+  el.fan.addEventListener('pointermove', hoverArmed);
+}
+
+function take(btn, ev) {
   if (state.done || state.busy || btn.classList.contains('is-drawing')) return;
   const total = SPREADS[state.key].positions.length;
   if (state.drawn.length >= total) return;
@@ -130,6 +145,7 @@ function take(btn) {
   const pick = state.deck[+btn.dataset.n];
   if (!pick) return;
 
+  holdHover(ev);                         // 커서 밑 카드가 저절로 뜨지 않게
   btn.classList.add('is-drawing');       // 호에서 한 장을 들어 세우고
   state.drawn.push(pick);
   const at = state.drawn.length - 1;
@@ -155,7 +171,7 @@ async function autoDraw() {
     const free = [...el.fan.children].filter(b => !b.classList.contains('is-drawing'));
     if (!free.length) break;
     take(free[crypto.getRandomValues(new Uint32Array(1))[0] % free.length]);
-    await wait(calm() ? 0 : 340);
+    await wait(calm() ? 300 : 340);
   }
   await wait(LIFT_MS() + 40);
 
@@ -198,19 +214,28 @@ async function shuffleDeck() {
   el.reading.innerHTML = '';
   el.actions.hidden = true;
   renderBoard();
-  el.fan.classList.remove('is-done');
+  el.fan.classList.remove('is-done', 'no-hover');
   [...el.fan.children].forEach(b => b.classList.remove('is-taken', 'is-drawing'));
 
-  if (calm()) {                       // 동작 줄이기 설정이면 바로 새 덱
+  el.hint.textContent = '덱을 섞는 중';
+  el.fan.classList.add('is-busy');
+  const n = CARDS.length;
+
+  // 동작 줄이기 설정에서는 옮기는 대신 밝기로 같은 이야기를 합니다.
+  // 덱 전체가 한 번 어두워졌다가, 왼쪽부터 차례로 되살아납니다.
+  if (calm()) {
+    el.fan.classList.add('s-gather');
+    await wait(500);
     state.deck = shuffled();
+    [...el.fan.children].forEach((b, i) => { b.style.setProperty('--z', i); });
+    el.fan.classList.add('s-spread');
+    el.fan.classList.remove('s-gather');
+    await wait(n * 5 + 420);
+    el.fan.classList.remove('s-spread');
     finishShuffle();
     return;
   }
 
-  el.hint.textContent = '덱을 섞는 중';
-  el.fan.classList.add('is-busy');
-
-  const n = CARDS.length;
   const cutAt = 26 + (crypto.getRandomValues(new Uint32Array(1))[0] % 27);  // 26~52
   markStack(cutAt);
 
@@ -220,13 +245,13 @@ async function shuffleDeck() {
   await wait(560);
   // 두 뭉치가 떨어져 있는 동안 위아래를 맞바꿉니다 (겹치지 않아 티가 안 납니다)
   [...el.fan.children].forEach((b, i) => {
-    b.style.zIndex = b.dataset.upper ? i - cutAt : i + (n - cutAt);
+    b.style.setProperty('--z', b.dataset.upper ? i - cutAt : i + (n - cutAt));
   });
   el.fan.classList.remove('s-cut');            //    다시 한 벌로 포개고
   await wait(560);
 
   state.deck = shuffled();
-  [...el.fan.children].forEach((b, i) => { b.style.zIndex = i; });
+  [...el.fan.children].forEach((b, i) => { b.style.setProperty('--z', i); });
   el.fan.classList.add('s-spread');            // 3. 펼치기
   el.fan.classList.remove('s-gather');
   await wait(n * 5 + 640);
@@ -315,7 +340,7 @@ function finish() {
   saveLog();
   // 마지막 카드가 뒤집히는 걸 보고 나서 해석으로 내려갑니다.
   setTimeout(() => el.reading.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-             calm() ? 0 : 1100);
+             calm() ? 500 : 1100);
 }
 
 function syncCounter() {
