@@ -54,7 +54,7 @@ const label = card => card.en;
    호 위의 자리는 평행이동(--tx/--ty)으로 잡습니다. 이렇게 두면
    섞는 동작(모으기·자르기)과 펼친 상태 사이가 그대로 보간됩니다.
    ──────────────────────────────────────────────────────────── */
-const THETA   = () => (window.innerWidth < 760 ? 14 : 26);   // 부채 반각(도)
+const THETA   = () => (window.innerWidth < 760 ? 14 : 23);   // 부채 반각(도)
 const MIN_GAP = () => (window.innerWidth < 760 ? 11 : 14);   // 카드 한 장이 보이는 최소 폭
 const rad = deg => deg * Math.PI / 180;
 const wait = ms => new Promise(r => setTimeout(r, ms));

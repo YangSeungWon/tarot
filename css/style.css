@@ -42,6 +42,9 @@ body{
   font-weight:300;
   line-height:1.75;
   overflow-x:hidden;
+  /* 한글은 어절 중간에서 끊지 않습니다. 한 어절이 줄보다 길면 그때만 끊습니다. */
+  word-break:keep-all;
+  overflow-wrap:break-word;
 }
 h1,h2,h3{ margin:0; font-weight:400; line-height:1.25; }
 p{ margin:0; }
@@ -52,11 +55,13 @@ button{ font:inherit; color:inherit; }
   overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
 }
 :focus-visible{ outline:2px solid var(--gilt); outline-offset:3px; border-radius:2px; }
+/* 작성자 display 규칙이 hidden 속성을 덮어쓰지 않도록 */
+[hidden]{ display:none !important; }
 
 /* ── 머리말 ───────────────────────────────────────────────── */
 .masthead{
   text-align:center;
-  padding:clamp(3rem,9vw,5rem) 1.25rem clamp(1.75rem,4vw,2.5rem);
+  padding:clamp(1.5rem,4vw,2.5rem) 1.25rem clamp(1.1rem,2.5vw,1.6rem);
 }
 .wordmark{
   display:flex; align-items:baseline; justify-content:center;
@@ -64,13 +69,13 @@ button{ font:inherit; color:inherit; }
 }
 .wordmark-ko{
   font-family:var(--f-display); font-weight:700;
-  font-size:clamp(3rem,11vw,5.5rem); letter-spacing:.06em;
+  font-size:clamp(2.4rem,6.5vw,3.9rem); letter-spacing:.06em;
   background:linear-gradient(178deg,#f3e2b0 8%,var(--gilt) 52%,#7d6320 98%);
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
 .wordmark-en{
   font-family:var(--f-latin); font-style:italic; font-weight:300;
-  font-size:clamp(1rem,2.6vw,1.5rem); letter-spacing:.22em;
+  font-size:clamp(.85rem,2vw,1.15rem); letter-spacing:.22em;
   color:var(--mist);
 }
 /* ── 스프레드 선택 ────────────────────────────────────────── */
@@ -103,7 +108,7 @@ button{ font:inherit; color:inherit; }
    옮겨 놓습니다. (먼 회전축을 쓰면 섞는 동작과 보간이 어긋납니다.)
    호의 기하는 컨테이너 폭에 맞춰 js/app.js가 계산합니다.
    ───────────────────────────────────────────────────────── */
-.fan-stage{ margin:clamp(1.25rem,3.5vw,2.25rem) auto 0; }
+.fan-stage{ margin:clamp(.7rem,2vw,1.25rem) auto 0; }
 .fan-scroll{
   overflow-x:auto; overflow-y:hidden;
   scrollbar-width:thin; scrollbar-color:var(--veil-line) transparent;
@@ -197,12 +202,11 @@ button{ font:inherit; color:inherit; }
   font-size:.72rem; letter-spacing:.08em; color:var(--mist); opacity:.75;
 }
 .fan-swipe::before{ content:"↔  "; color:var(--gilt); }
-.fan-swipe[hidden]{ display:none; }
 
 .fan-tools{
   display:flex; align-items:center; justify-content:center;
   gap:clamp(.6rem,2vw,1.25rem); flex-wrap:wrap;
-  margin:0 0 clamp(1rem,3vw,1.75rem);
+  margin:0 0 clamp(.6rem,1.8vw,1.05rem);
 }
 .fan-btns{ display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; }
 .fan-hint{ font-size:.85rem; color:var(--mist); letter-spacing:.02em; }
@@ -222,7 +226,7 @@ button{ font:inherit; color:inherit; }
 /* ── 배치판 ───────────────────────────────────────────────── */
 .board{
   display:grid; justify-content:center; gap:clamp(.75rem,2.4vw,1.6rem);
-  margin:clamp(2rem,6vw,3.5rem) auto 0; max-width:64rem;
+  margin:clamp(1rem,3vw,1.9rem) auto 0; max-width:64rem;
 }
 .board[data-spread="one"]{ grid-template-columns:repeat(1,auto); }
 .board[data-spread="three"]{ grid-template-columns:repeat(3,auto); }
@@ -254,16 +258,15 @@ button{ font:inherit; color:inherit; }
 
 .slot{ width:var(--card-w); }
 .slot-label{
-  display:flex; align-items:flex-end; justify-content:center; gap:.35em;
-  min-height:2.4em; text-align:center; margin-bottom:.5rem;
-  font-family:var(--f-body); font-size:.66rem;
-  font-variant-numeric:tabular-nums;
-  letter-spacing:.2em; text-transform:uppercase;
+  display:block; min-height:2.8em; text-align:center; margin-bottom:.55rem;
+  font-family:var(--f-body); font-size:.74rem; line-height:1.4;
+  font-variant-numeric:tabular-nums; letter-spacing:.06em;
   color:var(--mist);
 }
+/* 자리 이름은 실제로 읽는 글자입니다. 번호보다 크고 밝게. */
 .slot-label i{
-  font-style:normal; font-family:var(--f-body);
-  font-size:.72rem; letter-spacing:.12em;
+  font-style:normal; font-size:.88rem; font-weight:400;
+  letter-spacing:.01em; color:var(--parchment-dim);
 }
 /* 빈 자리는 뒤집힌 카드가 아니라 '카드가 놓일 자리'로 보여야 합니다.
    움푹한 판에 가는 테두리, 가운데 작은 표식. */
@@ -322,7 +325,7 @@ button{ font:inherit; color:inherit; }
 
 .slot-caption{
   margin-top:.6rem; text-align:center;
-  font-family:var(--f-display); font-size:.82rem; line-height:1.4;
+  font-family:var(--f-display); font-size:.95rem; line-height:1.4;
   color:var(--parchment); opacity:0; transition:opacity .4s .5s;
 }
 .slot.is-filled .slot-caption{ opacity:1; }
@@ -330,14 +333,14 @@ button{ font:inherit; color:inherit; }
 .cross-note{
   display:block; margin-top:.35rem; padding-top:.35rem;
   border-top:1px solid var(--veil-line);
-  font-family:var(--f-body); font-size:.68rem; letter-spacing:.04em;
+  font-family:var(--f-body); font-size:.74rem; letter-spacing:.02em;
   color:var(--mist);
 }
 .cross-note b{ color:var(--parchment); font-weight:400; }
 .cross-note i{ font-style:normal; color:var(--vermilion); }
 .slot-caption em{
-  display:block; font-style:normal; font-size:.68rem;
-  font-family:var(--f-body); letter-spacing:.1em;
+  display:block; font-style:normal; font-size:.72rem;
+  font-family:var(--f-body); letter-spacing:.04em;
   color:var(--vermilion);
 }
 
@@ -385,8 +388,8 @@ button{ font:inherit; color:inherit; }
 }
 .entry-thumb.is-rev{ transform:rotate(180deg); }
 .entry-pos{
-  font-family:var(--f-body); font-size:.68rem; font-variant-numeric:tabular-nums;
-  letter-spacing:.22em; text-transform:uppercase; color:var(--mist);
+  font-family:var(--f-body); font-size:.8rem; font-variant-numeric:tabular-nums;
+  letter-spacing:.04em; color:var(--mist);
 }
 .entry-name{
   font-family:var(--f-display); font-weight:700;
