@@ -20,6 +20,7 @@ const el = {
 let useRev = true;
 try { useRev = localStorage.getItem(REV_KEY) !== 'off'; } catch {}
 
+let gen = 0;   // 판이 새로 깔릴 때마다 올라갑니다. 진행 중이던 뽑기를 구분하는 표.
 let state = { key:'one', deck:[], drawn:[], done:false, busy:false, auto:false };
 
 /* ── 덱 ──────────────────────────────────────────────────── */
@@ -38,7 +39,7 @@ function fisherYates(a) {
 // 방향은 3번의 뭉치 크기가 정하고, 순서는 피셔–예이츠라 균등합니다.
 // 한 번 섞으면 어느 자리에 무엇이 어느 방향으로 놓였는지가 전부 결정되고,
 // 뽑을 때 바뀌지 않습니다.
-const CHUNK_MIN = 10, CHUNK_MAX = 30;      // 78장의 13~38%, 평균 약 26%
+const CHUNK_MIN = 6, CHUNK_MAX = 25;       // 78장의 8~32%, 평균 약 20%
 const pickChunk = () => CHUNK_MIN + rnd(CHUNK_MAX - CHUNK_MIN + 1);
 
 function shuffled(chunk = pickChunk()) {
@@ -167,7 +168,9 @@ function take(btn, ev) {
 
   if (at + 1 === total) finish();        // 기다리지 않고 곧바로 해석으로
 
+  const g = gen;
   setTimeout(() => {                     // 카드는 그동안 배치판으로 넘어갑니다
+    if (g !== gen) return;               // 판이 갈렸으면 그만둡니다
     btn.classList.add('is-taken');
     fill(at, pick);
   }, LIFT_MS());
@@ -290,6 +293,7 @@ function finishShuffle() {
 
 /* ── 배치판 ─────────────────────────────────────────────── */
 function renderBoard() {
+  gen++;
   const spread = SPREADS[state.key];
   el.board.dataset.spread = state.key;
   el.board.innerHTML = spread.positions.map((pos, i) => `
@@ -310,6 +314,7 @@ function renderBoard() {
 function fill(i, pick) {
   const card = CARDS[pick.idx];
   const slot = el.board.querySelector(`.slot[data-i="${i}"]`);
+  if (!slot) return;                     // 그새 판이 바뀌었으면 버립니다
   const front = $('.card-front', slot);
   front.classList.toggle('is-rev', pick.rev);
   front.innerHTML =
@@ -322,7 +327,7 @@ function fill(i, pick) {
   // 켈틱 크로스의 2번은 1번 위에 가로로 놓이므로 이름을 1번 캡션에 덧붙입니다.
   if (state.key === 'celtic' && i === 1) {
     const first = $('.slot[data-i="0"] .slot-caption', el.board);
-    first.insertAdjacentHTML('beforeend',
+    if (first) first.insertAdjacentHTML('beforeend',
       `<span class="cross-note">02 장애물<br><b>${card.ko}</b>${pick.rev ? ' <i>역</i>' : ''}</span>`);
   }
 }
@@ -369,17 +374,20 @@ function scrollToReading() {
   if (Math.abs(dist) < 4) return;
 
   let stopped = false;
-  const stop = () => { stopped = true; };
-  addEventListener('wheel', stop, { once: true, passive: true });
-  addEventListener('touchstart', stop, { once: true, passive: true });
+  const stop = () => { stopped = true; done(); };
+  const done = () => {
+    removeEventListener('wheel', stop);
+    removeEventListener('touchstart', stop);
+  };
+  addEventListener('wheel', stop, { passive: true });
+  addEventListener('touchstart', stop, { passive: true });
 
   const t0 = performance.now();
   const step = now => {
     if (stopped) return;
     const k = Math.min(1, (now - t0) / 380);
     window.scrollTo(0, from + dist * (1 - Math.pow(1 - k, 3)));
-    if (k < 1) requestAnimationFrame(step);
-    else { removeEventListener('wheel', stop); removeEventListener('touchstart', stop); }
+    if (k < 1) requestAnimationFrame(step); else done();
   };
   requestAnimationFrame(step);
 }
