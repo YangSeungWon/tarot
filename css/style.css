@@ -22,8 +22,8 @@
   --card-w: clamp(96px, 15vw, 132px);
   --ratio: 0.6;
   --card-h: calc(var(--card-w) / var(--ratio));
-  --pivot: 360%;
-  --fan-drop: 122px;
+  --origin-y: 700px;   /* js가 덮어씁니다 */
+  --fan-drop: 120px;
   --ease: cubic-bezier(.22,.61,.36,1);
 }
 
@@ -108,48 +108,67 @@ button{ font:inherit; color:inherit; }
   font-size:.85rem; margin-top:.85rem;
 }
 
-/* ── 시그니처: 부채꼴 덱 ──────────────────────────────────────
-   카드는 화면 아래쪽 먼 지점(--pivot)을 축으로 회전합니다.
-   축이 멀수록 호가 넓고 완만해집니다.
+/* ── 시그니처: 78장 부채꼴 덱 ─────────────────────────────────
+   호의 기하(회전축 거리·각도·처지는 양)는 컨테이너 폭에 맞춰
+   js/app.js에서 계산해 --origin-y / --fan-drop 으로 넣어줍니다.
+   좁은 화면에서는 부채가 화면보다 넓어져 가로로 밀어 볼 수 있습니다.
    ───────────────────────────────────────────────────────── */
-.fan-stage{ margin:clamp(1.25rem,3.5vw,2.25rem) auto 0; max-width:64rem; }
-.fan{
-  position:relative;
-  height:calc(var(--card-h) + var(--fan-drop));
-  isolation:isolate;
+.fan-stage{ margin:clamp(1.25rem,3.5vw,2.25rem) auto 0; }
+.fan-scroll{
+  overflow-x:auto; overflow-y:hidden;
+  scrollbar-width:thin; scrollbar-color:var(--veil-line) transparent;
+  -webkit-overflow-scrolling:touch;
 }
+.fan-scroll::-webkit-scrollbar{ height:6px; }
+.fan-scroll::-webkit-scrollbar-thumb{ background:var(--veil-line); border-radius:3px; }
+.fan{ position:relative; margin:0 auto; }
+
 .fan-card{
   position:absolute; left:50%; bottom:var(--fan-drop);
   width:var(--card-w); height:var(--card-h);
   margin-left:calc(var(--card-w) / -2);
   padding:0; border:0; background:none; cursor:pointer;
-  transform-origin:50% var(--pivot);
+  transform-origin:50% var(--origin-y);
   transform:rotate(var(--a)) translateY(var(--lift,0));
-  transition:transform .4s var(--ease), filter .3s, opacity .5s;
-  filter:drop-shadow(-3px 3px 7px rgba(0,0,0,.5));
+  transition:transform .35s var(--ease), filter .25s, opacity .45s;
+  filter:drop-shadow(-2px 2px 5px rgba(0,0,0,.55));
   animation:deal .5s var(--ease) backwards;
   animation-delay:var(--d);
 }
 .fan-card svg{ width:100%; height:100%; display:block; border-radius:5px; }
 .fan-card:hover,.fan-card:focus-visible{
   --lift:-30px;
-  filter:drop-shadow(0 12px 22px rgba(201,162,39,.35));
-  z-index:40;
+  filter:drop-shadow(0 12px 22px rgba(201,162,39,.4));
+  z-index:200;
 }
 .fan .fan-card.is-taken{
   opacity:0; pointer-events:none;
-  transform:rotate(var(--a)) translateY(-160px) scale(.72);
+  transform:rotate(var(--a)) translateY(-56px) scale(.8);
 }
 .fan.is-done .fan-card{ opacity:.16; pointer-events:none; }
+/* 섞을 때: 한 번 모았다가 다시 펼칩니다 */
+.fan.is-collapsing .fan-card{
+  transform:rotate(0deg) translateY(26px) scale(.96);
+  opacity:.7; transition-duration:.26s;
+}
 
 @keyframes deal{
   from{ transform:rotate(0deg) translateY(46px) scale(.92); opacity:0; }
 }
 
-.fan-hint{
-  text-align:center; margin-top:1.75rem;
-  font-size:.85rem; color:var(--mist); letter-spacing:.02em;
+.fan-swipe{
+  text-align:center; margin-top:.85rem;
+  font-size:.72rem; letter-spacing:.08em; color:var(--mist); opacity:.75;
 }
+.fan-swipe::before{ content:"↔  "; color:var(--gilt); }
+.fan-swipe[hidden]{ display:none; }
+
+.fan-tools{
+  display:flex; align-items:center; justify-content:center;
+  gap:clamp(.75rem,3vw,1.75rem); flex-wrap:wrap;
+  margin-top:1.25rem;
+}
+.fan-hint{ font-size:.85rem; color:var(--mist); letter-spacing:.02em; }
 .fan-hint b{
   font-family:var(--f-body); font-weight:500; font-size:.85rem;
   font-variant-numeric:tabular-nums;
@@ -365,7 +384,7 @@ button{ font:inherit; color:inherit; }
 
 /* ── 반응형 ───────────────────────────────────────────────── */
 @media (max-width:760px){
-  :root{ --card-w:clamp(74px,23vw,104px); --pivot:290%; --fan-drop:46px; }
+  :root{ --card-w:clamp(74px,23vw,104px); }
   .board[data-spread="three"]{ grid-template-columns:repeat(3,auto); }
   .board[data-spread="celtic"]{
     grid-template-columns:repeat(2,auto);

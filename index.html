@@ -43,7 +43,7 @@
 <header class="masthead">
   <p class="eyebrow">Rider · Waite · Smith — 1909</p>
   <h1 class="wordmark"><span class="wordmark-ko">타로</span><span class="wordmark-en">Tarot</span></h1>
-  <p class="lede">78장 풀덱. 정방향과 역방향을 모두 씁니다.<br>카드는 뽑는 순간 결정됩니다.</p>
+  <p class="lede">78장 풀덱. 정방향과 역방향을 모두 씁니다.<br>덱을 섞는 순간 78장의 자리가 모두 정해집니다.</p>
 </header>
 
 <main>
@@ -61,14 +61,19 @@
     <p class="spread-desc" id="spread-desc">오늘 하루, 혹은 하나의 질문에 대한 답</p>
 
     <div class="fan-stage">
-      <div class="fan" id="fan" role="group" aria-label="펼쳐진 덱 — 카드를 골라 뽑으세요"></div>
-      <p class="fan-hint" id="fan-hint">덱에서 카드를 고르세요 <b id="counter">0 / 1</b></p>
+      <div class="fan-scroll" id="fan-scroll">
+        <div class="fan" id="fan" role="group" aria-label="펼쳐진 덱 78장 — 카드를 골라 뽑으세요"></div>
+      </div>
+      <p class="fan-swipe" id="fan-swipe" hidden>옆으로 밀면 78장 전체가 보입니다</p>
+      <div class="fan-tools">
+        <p class="fan-hint" id="fan-hint">덱에서 카드를 고르세요 <b id="counter">0 / 1</b></p>
+        <button class="btn btn-ghost" id="btn-shuffle" type="button">덱 섞기</button>
+      </div>
     </div>
 
     <div class="board" id="board" data-spread="one"></div>
 
     <div class="actions" id="actions" hidden>
-      <button class="btn btn-ghost" id="btn-reshuffle" type="button">다시 섞기</button>
       <button class="btn btn-ghost" id="btn-share" type="button">결과 링크 복사</button>
     </div>
   </section>
@@ -86,6 +91,7 @@
 
 <footer class="colophon">
   <p>카드 이미지는 1909년 라이더-웨이트-스미스 판본으로 퍼블릭 도메인입니다.</p>
+  <p>섞을 때마다 78장이 각자의 자리와 방향을 갖습니다. 어느 자리를 고르느냐가 결과를 바꿉니다.</p>
   <p>해석은 참고용입니다. 결정은 당신이 합니다.</p>
 </footer>
 

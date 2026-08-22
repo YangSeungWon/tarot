@@ -9,7 +9,8 @@ const LOG_KEY = 'tarot.log.v1';
 const LOG_MAX = 20;
 
 const el = {
-  fan: $('#fan'), hint: $('#fan-hint'), counter: $('#counter'),
+  fan: $('#fan'), scroll: $('#fan-scroll'), swipe: $('#fan-swipe'),
+  hint: $('#fan-hint'), counter: $('#counter'),
   board: $('#board'), reading: $('#reading'), actions: $('#actions'),
   desc: $('#spread-desc'), toast: $('#toast'),
   log: $('#log'), logList: $('#log-list'),
@@ -18,6 +19,8 @@ const el = {
 let state = { key:'one', deck:[], drawn:[], done:false };
 
 /* ── 덱 ──────────────────────────────────────────────────── */
+// 섞기 = 78개 자리에 78장을 배치하는 일. 한 번 섞으면 어느 자리에
+// 무엇이 어느 방향으로 놓였는지가 전부 결정되고, 뽑을 때 바뀌지 않습니다.
 function shuffled() {
   const a = CARDS.map((_, i) => i);
   for (let i = a.length - 1; i > 0; i--) {
@@ -35,31 +38,74 @@ function label(card) {
     : `${SUIT_KO[card.suit]} · ${card.num <= 10 ? card.num : ['페이지','나이트','퀸','킹'][card.num - 11]}`;
 }
 
-/* ── 부채꼴 덱 ───────────────────────────────────────────── */
+/* ── 부채꼴 덱 ───────────────────────────────────────────────
+   78장을 전부 펼칩니다. 카드 한 장이 보이는 폭(gap)에 하한을 두고,
+   그만큼도 안 되면 부채가 컨테이너보다 넓어지면서 가로 스크롤이 생깁니다.
+   ──────────────────────────────────────────────────────────── */
+// 좁은 화면에서는 호를 완만하게 눕혀야 보이는 구간이 자연스럽습니다.
+const THETA   = () => (window.innerWidth < 760 ? 14 : 26);   // 부채 반각(도)
+const MIN_GAP = () => (window.innerWidth < 760 ? 11 : 14);
+const rad = d => d * Math.PI / 180;
+
+// cardW/cardH는 CSS의 clamp()·calc() 결과라 커스텀 속성으로는 못 읽습니다.
+// 실제로 놓인 카드의 레이아웃 크기(transform 이전 값)를 재서 씁니다.
+function fanGeometry(n, cardW, cardH, avail) {
+  const t = rad(THETA());
+  // 양 끝 카드는 THETA만큼 기울어져 있어 제 폭보다 옆으로 더 튀어나옵니다.
+  const overhang = (cardW / 2) * Math.cos(t) + (cardH / 2) * Math.sin(t) - cardW / 2;
+  const usable = avail - 2 * overhang;
+
+  const gap = Math.max(MIN_GAP(), (usable - cardW) / (n - 1));
+  const spread = gap * (n - 1);                       // 양 끝 카드 중심 사이 거리
+  const d = spread / (2 * Math.sin(t));               // 회전축까지의 거리
+  const drop = d * (1 - Math.cos(t))
+             + (cardH / 2) * Math.cos(t) + (cardW / 2) * Math.sin(t) - cardH / 2;
+
+  return { width: spread + cardW + 2 * overhang, originY: cardH / 2 + d,
+           drop, height: cardH + drop + (window.innerWidth < 760 ? 28 : 38) };
+}
+
 function renderFan() {
-  const n = window.innerWidth < 760 ? 11 : 21;
-  const span = window.innerWidth < 760 ? 44 : 62;
+  const n = CARDS.length;
+  const avail = el.scroll.clientWidth - 8;
   el.fan.innerHTML = '';
-  el.fan.classList.remove('is-done');
+  el.fan.classList.remove('is-done', 'is-collapsing');
+
+  const frag = document.createDocumentFragment();
   for (let i = 0; i < n; i++) {
-    const a = -span / 2 + (span / (n - 1)) * i;
+    const th = THETA();
+    const a = -th + (2 * th / (n - 1)) * i;
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'fan-card';
-    b.style.setProperty('--a', a.toFixed(2) + 'deg');
-    b.style.setProperty('--d', (i * 22) + 'ms');
+    b.style.setProperty('--a', a.toFixed(3) + 'deg');
+    b.style.setProperty('--d', (i * 7) + 'ms');
     b.style.zIndex = i;
-    b.setAttribute('aria-label', `${i + 1}번째 카드 뽑기`);
+    b.dataset.n = i;
+    b.setAttribute('aria-label', `왼쪽에서 ${i + 1}번째 카드 뽑기`);
     b.innerHTML = '<svg><use href="#cardback"/></svg>';
     b.addEventListener('click', () => take(b));
-    el.fan.appendChild(b);
+    frag.appendChild(b);
   }
+  el.fan.appendChild(frag);
+
+  const probe = el.fan.firstElementChild;
+  const g = fanGeometry(n, probe.offsetWidth, probe.offsetHeight, avail);
+  el.fan.style.width = g.width + 'px';
+  el.fan.style.height = g.height + 'px';
+  el.fan.style.setProperty('--origin-y', g.originY + 'px');
+  el.fan.style.setProperty('--fan-drop', g.drop + 'px');
+  el.scroll.scrollLeft = (el.scroll.scrollWidth - el.scroll.clientWidth) / 2;
+  el.swipe.hidden = el.scroll.scrollWidth <= el.scroll.clientWidth + 1;
 }
 
 function take(btn) {
   if (state.done || btn.classList.contains('is-taken')) return;
+  // 카드는 섞는 순간 자리마다 확정됩니다. 여기서 새로 뽑는 것이 아니라,
+  // 그 자리에 놓여 있던 장을 그대로 가져옵니다.
+  const pick = state.deck[+btn.dataset.n];
+  if (!pick) return;
   btn.classList.add('is-taken');
-  const pick = state.deck.pop();
   state.drawn.push(pick);
   fill(state.drawn.length - 1, pick);
   syncCounter();
@@ -229,10 +275,11 @@ document.querySelectorAll('.spread-btn').forEach(b =>
     reset(b.dataset.spread);
   }));
 
-$('#btn-reshuffle').addEventListener('click', () => {
+$('#btn-shuffle').addEventListener('click', () => {
   history.replaceState(null, '', location.pathname + location.search);
-  reset();
-  el.fan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.fan.classList.add('is-collapsing');
+  toast('덱을 섞었습니다');
+  setTimeout(() => reset(), 280);
 });
 
 $('#btn-share').addEventListener('click', async () => {
@@ -263,7 +310,7 @@ el.logList.addEventListener('click', e => {
 let rt;
 window.addEventListener('resize', () => {
   clearTimeout(rt);
-  rt = setTimeout(() => { if (!state.drawn.length) renderFan(); }, 200);
+  rt = setTimeout(() => { if (!state.drawn.length) renderFan(); }, 180);
 });
 
 /* ── 시작 ───────────────────────────────────────────────── */
