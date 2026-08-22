@@ -3,7 +3,6 @@ import { CARDS, SPREADS } from './cards.js';
 const $ = (s, r = document) => r.querySelector(s);
 const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X',
                'XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
-const SUIT_KO = { wands:'완드', cups:'컵', swords:'소드', pents:'펜타클' };
 const SPREAD_ORDER = ['one','three','celtic'];
 const LOG_KEY = 'tarot.log.v1';
 const LOG_MAX = 20;
@@ -33,10 +32,10 @@ function shuffled() {
   return a.map((idx, i) => ({ idx, rev: flips[i] < 96 }));  // 역방향 약 37%
 }
 
+// 제목 옆에 붙는 표식. 카드에 실제로 인쇄된 것을 씁니다.
+// 메이저는 로마숫자, 마이너는 영문 이름 — 한글 이름과 겹치지 않게.
 function label(card) {
-  return card.arcana === 'major'
-    ? ROMAN[card.num]
-    : `${SUIT_KO[card.suit]} · ${card.num <= 10 ? card.num : ['페이지','나이트','퀸','킹'][card.num - 11]}`;
+  return card.arcana === 'major' ? ROMAN[card.num] : card.en;
 }
 
 /* ── 부채꼴 덱 ───────────────────────────────────────────────
@@ -305,7 +304,7 @@ function fill(i, pick) {
   if (state.key === 'celtic' && i === 1) {
     const first = $('.slot[data-i="0"] .slot-caption', el.board);
     first.insertAdjacentHTML('beforeend',
-      `<span class="cross-note">가로지름 · 장애물<br><b>${card.ko}</b>${pick.rev ? ' <i>역</i>' : ''}</span>`);
+      `<span class="cross-note">02 장애물<br><b>${card.ko}</b>${pick.rev ? ' <i>역</i>' : ''}</span>`);
   }
 }
 
@@ -320,7 +319,7 @@ function renderReading() {
         <div><img class="entry-thumb${pick.rev ? ' is-rev' : ''}"
              src="assets/cards/${c.id}.webp" alt="${c.ko}" loading="lazy"></div>
         <div>
-          <p class="entry-pos">${String(i + 1).padStart(2, '0')} — ${spread.positions[i]}</p>
+          <p class="entry-pos">${String(i + 1).padStart(2, '0')} ${spread.positions[i]}</p>
           <h3 class="entry-name">${c.ko}<span class="entry-numeral">${label(c)}</span>
             <span class="entry-dir ${pick.rev ? 'dir-rev' : 'dir-up'}">${pick.rev ? '역방향' : '정방향'}</span>
           </h3>
@@ -445,8 +444,8 @@ function renderLog() {
     const when = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     const parsed = decode(r.c);
     const names = parsed
-      ? parsed.drawn.map(p => CARDS[p.idx].ko + (p.rev ? '(역)' : '')).join(' · ')
-      : '—';
+      ? parsed.drawn.map(p => CARDS[p.idx].ko + (p.rev ? '(역)' : '')).join(', ')
+      : '';
     return `<li class="log-item">
       <span class="log-when">${when}</span>
       <span class="log-spread">${SPREADS[r.s]?.name ?? ''}</span>
