@@ -7,6 +7,17 @@
   크롤러와 링크 미리보기는 자바스크립트를 돌리지 않아 영어 `<head>` 가 박힌 페이지가 따로 필요합니다.
   **`index.html` 을 고치면 이 스크립트를 다시 돌리세요.**
 
+## 카드 사전
+
+`/card/` 와 `/en/card/` 에 78장 전체 목록과 카드별 페이지가 있습니다.
+정/역 해석과 주제별 한 줄이 정적 HTML로 들어 있어 검색엔진이 읽을 수 있습니다.
+
+```
+node scripts/build-pages.mjs
+```
+
+`js/cards.js` 를 고치면 이 스크립트를 다시 돌리세요. sitemap.xml 도 함께 만듭니다.
+
 정적 웹 타로. 서버 없이 브라우저에서만 동작합니다.
 
 - 78장 풀덱(메이저 22 + 마이너 56), 정/역방향
@@ -58,6 +69,8 @@ js/i18n.js          UI 문자열 두 벌
 js/app.js           셔플·뽑기·해석·공유·기록
 scripts/fetch-cards.sh   카드 이미지 내려받기
 scripts/build-en.sh      en/index.html 생성
+scripts/build-pages.mjs  카드 사전 페이지 158장 + sitemap.xml 생성
+card/, en/card/          생성물. 직접 고치지 마세요
 ```
 
 ## 커스텀 도메인 (tarot.ysw.kr)

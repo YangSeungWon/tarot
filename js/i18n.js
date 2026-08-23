@@ -22,6 +22,7 @@ export const UI = {
   logTitle:   { ko:'지난 리딩', en:'Past readings' },
   logClear:   { ko:'전체 지우기', en:'Clear all' },
   logOpen:    { ko:'다시 보기', en:'Open' },
+  cardIndex:  { ko:'카드 78장 의미 보기', en:'All 78 card meanings' },
   colophon:   { ko:'카드 이미지는 1909년 Rider-Waite-Smith 판본, 퍼블릭 도메인입니다.',
                 en:'Card images are the 1909 Rider-Waite-Smith edition, public domain.' },
   upright:    { ko:'정방향', en:'Upright' },

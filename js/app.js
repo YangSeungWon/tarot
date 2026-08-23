@@ -602,6 +602,9 @@ function applyUI() {
   $('#log-title').textContent = T('logTitle');
   $('#btn-clearlog').textContent = T('logClear');
   $('#colophon').textContent = T('colophon');
+  const ci = $('#card-index');
+  ci.textContent = T('cardIndex');
+  ci.href = lang === 'ko' ? '/card/' : '/en/card/';
   buildSpreads();
   buildTopics();
   syncRevBtn();

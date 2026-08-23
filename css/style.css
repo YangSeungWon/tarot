@@ -680,6 +680,13 @@ body[data-lang="en"] .wordmark-en{
   border-top:1px solid var(--veil-line);
   color:var(--mist); font-size:.76rem; line-height:2;
 }
+.colo-link{
+  color:var(--parchment-dim); text-decoration:none;
+  border-bottom:1px solid var(--veil-line); padding-bottom:1px;
+  transition:color .25s, border-color .25s;
+}
+.colo-link:hover{ color:var(--parchment); border-bottom-color:var(--gilt); }
+
 .toast{
   position:fixed; left:50%; bottom:2rem; transform:translate(-50%,1.5rem);
   background:var(--veil); border:1px solid var(--gilt-lo); border-radius:999px;
