@@ -710,6 +710,9 @@ body[data-lang="en"] .wordmark-en{
   .spread-btn{ padding:.4rem .75rem; gap:.35rem; }
   .spread-btn .spread-name{ font-size:.82rem; }
   .spread-btn .spread-n{ font-size:.78rem; }
+  /* 덱 아래 버튼이 셋이라 좁은 화면에서는 조여야 한 줄에 들어갑니다 */
+  .fan-btns{ gap:.35rem; }
+  .fan-btns .btn{ padding:.45rem .85rem; font-size:.82rem; }
   .fan-tools{ flex-direction:column; gap:.85rem; }
   .board[data-spread="three"],
 .board[data-spread="act"]{ grid-template-columns:repeat(3,auto); }

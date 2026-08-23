@@ -11,6 +11,8 @@ export const UI = {
   shuffling:  { ko:'덱을 섞는 중', en:'Shuffling the deck' },
   auto:       { ko:'자동으로 뽑기', en:'Draw for me' },
   shuffle:    { ko:'덱 섞기', en:'Shuffle' },
+  restart:    { ko:'처음부터 다시', en:'Start over' },
+  reshuffled: { ko:'남은 덱을 다시 섞었습니다', en:'The rest of the deck is reshuffled' },
   settings:   { ko:'설정', en:'Settings' },
   revOn:      { ko:'역방향 켬', en:'Reversals on' },
   revOff:     { ko:'역방향 끔', en:'Reversals off' },

@@ -18,7 +18,7 @@ const el = {
   board: $('#board'), reading: $('#reading'), actions: $('#actions'),
   toast: $('#toast'),
   log: $('#log'), logList: $('#log-list'),
-  shuffleBtn: $('#btn-shuffle'), autoBtn: $('#btn-auto'),
+  shuffleBtn: $('#btn-shuffle'), restartBtn: $('#btn-restart'), autoBtn: $('#btn-auto'),
   revBtn: $('#btn-rev'), faceBtn: $('#btn-face'), settings: $('#settings'),
   langBtn: $('#btn-lang'), bar: $('#spreadbar'),
   ask: $('.ask'), askCat: $('#ask-cat'), askQ: $('#ask-q'),
@@ -73,6 +73,23 @@ function shuffled(chunk = pickChunk()) {
   const order = fisherYates(CARDS.map((_, i) => i));
   const deck = order.map((idx, i) => ({ idx, rev: i >= order.length - chunk }));
   return fisherYates(deck);
+}
+
+// 이미 뽑혀 나간 카드는 덱에 없습니다. 남은 자리끼리만 다시 섞고,
+// 뽑힌 자리는 건드리지 않습니다. 같은 카드가 두 번 나오지 않게 하려는 것이기도 합니다.
+function reshuffleRest(chunk) {
+  const taken = new Set();
+  [...el.fan.children].forEach((b, i) => { if (b.classList.contains('is-drawing')) taken.add(i); });
+  const free = [];
+  for (let i = 0; i < state.deck.length; i++) if (!taken.has(i)) free.push(i);
+  if (!free.length) return state.deck.slice();
+
+  const pool = fisherYates(free.map(i => state.deck[i].idx));
+  const c = Math.min(chunk, pool.length);
+  const marked = fisherYates(pool.map((idx, k) => ({ idx, rev: k >= pool.length - c })));
+  const next = state.deck.slice();
+  free.forEach((p, k) => { next[p] = marked[k]; });
+  return next;
 }
 
 // 제목 옆에 붙는 표식. 카드 아래쪽에 인쇄된 영문 이름을 그대로 씁니다.
@@ -345,8 +362,7 @@ async function autoDraw() {
   const total = L(SPREADS[state.key].positions).length;
   if (state.auto || state.busy || state.done || state.drawn.length >= total) return;
   state.auto = true;
-  el.autoBtn.disabled = true;
-  el.shuffleBtn.disabled = true;
+  syncButtons();
   el.fan.classList.add('is-busy');
 
   while (state.drawn.length < total) {
@@ -361,7 +377,7 @@ async function autoDraw() {
 
   el.fan.classList.remove('is-busy');
   state.auto = false;
-  el.shuffleBtn.disabled = false;
+  syncButtons();
 }
 
 /* ── 섞기 ────────────────────────────────────────────────────
@@ -387,20 +403,23 @@ function markStack(cutAt, spin) {
   return n;
 }
 
-async function shuffleDeck() {
+async function shuffleDeck(restart = false) {
   if (state.busy) return;
   state.busy = true;
   el.shuffleBtn.disabled = true;
+  el.restartBtn.disabled = true;
   history.replaceState(null, '', location.pathname + location.search);
 
-  // 판을 비웁니다
-  state.drawn = [];
-  state.done = false;
-  el.reading.innerHTML = '';
-  el.actions.hidden = true;
-  renderBoard();
-  el.fan.classList.remove('is-done', 'no-hover');
-  [...el.fan.children].forEach(b => b.classList.remove('is-taken', 'is-drawing'));
+  if (restart) {                      // 판을 비우고 78장을 통째로
+    state.drawn = [];
+    state.done = false;
+    el.reading.innerHTML = '';
+    el.actions.hidden = true;
+    renderBoard();
+    el.fan.classList.remove('is-done', 'no-hover');
+    [...el.fan.children].forEach(b => b.classList.remove('is-taken', 'is-drawing'));
+  }
+  const nextDeck = () => restart ? shuffled(chunk) : reshuffleRest(chunk);
 
   el.hint.textContent = T('shuffling');
   el.fan.classList.add('is-busy');
@@ -421,7 +440,7 @@ async function shuffleDeck() {
     el.fan.classList.add('s-cut');
     await wait(calm() ? 200 : 780);
     el.fan.classList.remove('s-cut');
-    state.deck = shuffled(chunk);
+    state.deck = nextDeck();
     paintFan(true);            // 새 덱이 정해졌으니 앞면 모드면 여기서부터 보여줍니다
     await spinRail();
     el.fan.classList.add('s-spread');
@@ -437,7 +456,7 @@ async function shuffleDeck() {
   if (calm()) {
     el.fan.classList.add('s-gather');
     await wait(500);
-    state.deck = shuffled(chunk);
+    state.deck = nextDeck();
     paintFan(true);
     [...el.fan.children].forEach((b, i) => { b.style.setProperty('--z', i); });
     el.fan.classList.add('s-spread');
@@ -461,7 +480,7 @@ async function shuffleDeck() {
   el.fan.classList.remove('s-cut');            //    다시 한 벌로 포개고
   await wait(560);
 
-  state.deck = shuffled(chunk);
+  state.deck = nextDeck();
   paintFan(true);
   [...el.fan.children].forEach((b, i) => { b.style.setProperty('--z', i); });
   el.fan.classList.add('s-spread');            // 3. 펼치기
@@ -473,13 +492,20 @@ async function shuffleDeck() {
 
 function finishShuffle() {
   el.fan.classList.remove('is-busy');
-  el.shuffleBtn.disabled = false;
-  el.autoBtn.disabled = false;
   state.busy = false;
   paintFan();                       // 섞기가 끝난 뒤라야 새 덱의 앞면을 칠합니다
   el.hint.innerHTML = `${hintLead()} <b id="counter"></b>`;
   el.counter = $('#counter');
   syncCounter();
+  syncButtons();
+}
+
+// 섞기는 뽑을 것이 남아 있을 때, 처음부터 다시는 뽑은 것이 있을 때 씁니다.
+function syncButtons() {
+  const busy = state.busy || state.auto;
+  el.autoBtn.disabled = busy || state.done;
+  el.shuffleBtn.disabled = busy || state.done;
+  el.restartBtn.disabled = busy || !state.drawn.length;
 }
 
 /* ── 배치판 ─────────────────────────────────────────────── */
@@ -576,6 +602,7 @@ function applyUI() {
   el.bar.setAttribute('aria-label', T('ariaSpread'));
   el.autoBtn.textContent = T('auto');
   el.shuffleBtn.textContent = T('shuffle');
+  el.restartBtn.textContent = T('restart');
   el.swipe.textContent = T('swipe');
   el.langBtn.textContent = T('langBtn');
   $('#settings-label').textContent = T('settings');
@@ -660,9 +687,9 @@ function finish() {
   el.fan.classList.add('is-done');
   el.hint.textContent = T('hintDone', L(SPREADS[state.key].positions).length);
   el.actions.hidden = false;
-  el.autoBtn.disabled = true;
   renderReading();
   saveLog();
+  syncButtons();
   // 카드가 자리에 놓이고(0.38초) 뒤집히기 시작하는 것까지 보고 내려갑니다.
   setTimeout(scrollToReading, calm() ? 300 : 700);
 }
@@ -706,12 +733,12 @@ function reset(key = state.key) {
   el.counter = $('#counter');
   el.reading.innerHTML = '';
   el.actions.hidden = true;
-  el.autoBtn.disabled = false;
   document.querySelectorAll('.spread-btn').forEach(b =>
     b.classList.toggle('is-on', b.dataset.spread === key));
   renderBoard();
   renderFan();
   syncCounter();
+  syncButtons();
 }
 
 /* ── 공유 링크 ──────────────────────────────────────────── */
@@ -763,7 +790,6 @@ function restore({ key, drawn, ask }) {
   el.fan.classList.add('is-done');
   el.hint.textContent = T('sharedNote');
   el.actions.hidden = false;
-  el.autoBtn.disabled = true;
   renderReading();
 }
 
@@ -819,7 +845,8 @@ el.bar.addEventListener('click', e => {
 });
 el.langBtn.addEventListener('click', switchLang);
 
-el.shuffleBtn.addEventListener('click', shuffleDeck);
+el.shuffleBtn.addEventListener('click', () => shuffleDeck(false));
+el.restartBtn.addEventListener('click', () => shuffleDeck(true));
 el.autoBtn.addEventListener('click', autoDraw);
 el.askCat.addEventListener('change', syncAsk);
 el.askQ.addEventListener('keydown', e => { if (e.key === 'Enter') el.askQ.blur(); });
