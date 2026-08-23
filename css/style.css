@@ -73,6 +73,14 @@ button{ font:inherit; color:inherit; }
   background:linear-gradient(178deg,#f3e2b0 8%,var(--gilt) 52%,#7d6320 98%);
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
+/* 영어에서는 한글 로고를 접고 Tarot을 제목 자리에 올립니다 */
+body[data-lang="en"] .wordmark-ko{ display:none; }
+body[data-lang="en"] .wordmark-en{
+  font-family:var(--f-latin); font-style:normal; font-weight:400;
+  font-size:clamp(2.4rem,6.5vw,3.9rem); letter-spacing:.06em;
+  background:linear-gradient(178deg,#f3e2b0 8%,var(--gilt) 52%,#7d6320 98%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
 .wordmark-en{
   font-family:var(--f-latin); font-style:italic; font-weight:300;
   font-size:clamp(.85rem,2vw,1.15rem); letter-spacing:.22em;

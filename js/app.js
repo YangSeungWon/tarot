@@ -1,4 +1,5 @@
-import { CARDS, SPREADS, TOPICS, LENS_KO } from './cards.js';
+import { CARDS, SPREADS, TOPICS, LENS } from './cards.js';
+import { UI } from './i18n.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
@@ -6,6 +7,7 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>'
 const SPREAD_ORDER = ['one','three','celtic','act','choice','horseshoe','zodiac'];
 const LOG_KEY = 'tarot.log.v1';
 const REV_KEY = 'tarot.reversals.v1';
+const LANG_KEY = 'tarot.lang.v1';
 const FACE_KEY = 'tarot.faceup.v1';
 const LOG_MAX = 20;
 
@@ -18,10 +20,27 @@ const el = {
   log: $('#log'), logList: $('#log-list'),
   shuffleBtn: $('#btn-shuffle'), autoBtn: $('#btn-auto'),
   revBtn: $('#btn-rev'), faceBtn: $('#btn-face'), settings: $('#settings'),
+  langBtn: $('#btn-lang'), bar: $('#spreadbar'),
   ask: $('.ask'), askCat: $('#ask-cat'), askQ: $('#ask-q'),
 };
 
 let useRev = true;
+/* ── 언어 ────────────────────────────────────────────────────
+   ?lang= 가 있으면 그것, 없으면 저장된 값, 그것도 없으면 브라우저 설정.
+   L()은 {ko,en} 한 쌍에서 하나를 고르고, T()는 UI 문자열을 꺼냅니다.
+   ──────────────────────────────────────────────────────────── */
+const LANGS = ['ko', 'en'];
+let lang = 'ko';
+try {
+  const q = new URLSearchParams(location.search).get('lang');
+  const saved = localStorage.getItem(LANG_KEY);
+  lang = LANGS.includes(q) ? q
+       : LANGS.includes(saved) ? saved
+       : (navigator.language || '').toLowerCase().startsWith('ko') ? 'ko' : 'en';
+} catch {}
+const L = v => (v && typeof v === 'object' && lang in v) ? v[lang] : v;
+const T = (k, ...a) => { const v = UI[k][lang]; return typeof v === 'function' ? v(...a) : v; };
+
 let faceUp = false;
 try { useRev = localStorage.getItem(REV_KEY) !== 'off'; } catch {}
 try { faceUp = localStorage.getItem(FACE_KEY) === 'on'; } catch {}
@@ -55,7 +74,8 @@ function shuffled(chunk = pickChunk()) {
 }
 
 // 제목 옆에 붙는 표식. 카드 아래쪽에 인쇄된 영문 이름을 그대로 씁니다.
-const label = card => card.en;
+// 한국어에서는 카드에 인쇄된 영문 이름을 곁들이고, 영어에서는 이름이 곧 그것이라 생략합니다.
+const label = card => lang === 'ko' ? card.name.en : '';
 
 /* ── 부채꼴 덱 ───────────────────────────────────────────────
    78장을 전부 펼칩니다. 카드는 자기 중심을 축으로 회전하고,
@@ -222,7 +242,7 @@ function renderFan() {
     b.style.setProperty('--z', i);
     b.style.setProperty('--d', (i * 5) + 'ms');    // 첫 펼침 시차
     b.style.setProperty('--sd', (i * 5) + 'ms');   // 섞은 뒤 펼침 시차
-    b.setAttribute('aria-label', `왼쪽에서 ${i + 1}번째 카드 뽑기`);
+    b.setAttribute('aria-label', T('ariaPick', i + 1));
     b.innerHTML = '<svg><use href="#cardback"/></svg>';
     b.addEventListener('click', e => pick(b, e));
     frag.appendChild(b);
@@ -255,7 +275,7 @@ function relayout() {
 }
 
 const LIFT_MS = () => (calm() ? 260 : 380);
-const hintLead = () => isRail() ? '돌려서 가운데로 놓고 누르세요' : '덱에서 카드를 고르세요';
+const hintLead = () => isRail() ? T('hintRail') : T('hintPick');
 
 // 카드가 빠져나가는 동안 hover를 잠급니다. 포인터가 실제로 움직이면 풀립니다.
 let hoverArmed = null;
@@ -286,7 +306,7 @@ function paintFan() {
       b.innerHTML = '<svg><use href="#cardback"/></svg>';
     } else {
       const p = state.deck[i], c = CARDS[p.idx];
-      b.innerHTML = `<img src="assets/cards/${c.id}.webp" alt="${c.ko}"` +
+      b.innerHTML = `<img src="assets/cards/${c.id}.webp" alt="${L(c.name)}"` +
                     `${p.rev ? ' class="is-rev"' : ''} loading="lazy" decoding="async">`;
     }
   }
@@ -294,7 +314,7 @@ function paintFan() {
 
 function take(btn, ev) {
   if (state.done || state.busy || btn.classList.contains('is-drawing')) return;
-  const total = SPREADS[state.key].positions.length;
+  const total = L(SPREADS[state.key].positions).length;
   if (state.drawn.length >= total) return;
   // 카드는 섞는 순간 자리마다 확정됩니다. 여기서 새로 뽑는 것이 아니라,
   // 그 자리에 놓여 있던 장을 그대로 가져옵니다.
@@ -319,7 +339,7 @@ function take(btn, ev) {
 
 // 남은 자리를 무작위로 골라 차례차례 뽑습니다. 고르는 자리도 진짜 무작위입니다.
 async function autoDraw() {
-  const total = SPREADS[state.key].positions.length;
+  const total = L(SPREADS[state.key].positions).length;
   if (state.auto || state.busy || state.done || state.drawn.length >= total) return;
   state.auto = true;
   el.autoBtn.disabled = true;
@@ -379,7 +399,7 @@ async function shuffleDeck() {
   el.fan.classList.remove('is-done', 'no-hover');
   [...el.fan.children].forEach(b => b.classList.remove('is-taken', 'is-drawing'));
 
-  el.hint.textContent = '덱을 섞는 중';
+  el.hint.textContent = T('shuffling');
   el.fan.classList.add('is-busy');
   paintFan();                         // 섞는 동안에는 뒷면으로
   const n = CARDS.length;
@@ -462,7 +482,7 @@ function renderBoard() {
   el.board.classList.toggle('is-face', faceUp);   // 앞면 모드면 뒤집는 연출을 건너뜁니다
   const spread = SPREADS[state.key];
   el.board.dataset.spread = state.key;
-  el.board.innerHTML = spread.positions.map((pos, i) => `
+  el.board.innerHTML = L(spread.positions).map((pos, i) => `
     <div class="slot" data-i="${i}">
       <span class="slot-label">${String(i + 1).padStart(2, '0')} <i>${pos}</i></span>
       <div class="slot-frame">
@@ -484,9 +504,9 @@ function fill(i, pick) {
   const front = $('.card-front', slot);
   front.classList.toggle('is-rev', pick.rev);
   front.innerHTML =
-    `<img src="assets/cards/${card.id}.webp" alt="${card.ko}" loading="lazy" decoding="async">`;
+    `<img src="assets/cards/${card.id}.webp" alt="${L(card.name)}" loading="lazy" decoding="async">`;
   $('.slot-caption', slot).innerHTML =
-    `${card.ko}${pick.rev ? '<em>역방향</em>' : ''}`;
+    `${L(card.name)}${pick.rev ? `<em>${T('reversed')}</em>` : ''}`;
   // 빈 자리에 카드가 먼저 놓이고(뒷면), 잠시 뒤 뒤집힙니다.
   requestAnimationFrame(() => slot.classList.add('is-placing'));
   if (faceUp) requestAnimationFrame(() => slot.classList.add('is-filled'));
@@ -495,7 +515,8 @@ function fill(i, pick) {
   if (state.key === 'celtic' && i === 1) {
     const first = $('.slot[data-i="0"] .slot-caption', el.board);
     if (first) first.insertAdjacentHTML('beforeend',
-      `<span class="cross-note">02 장애물<br><b>${card.ko}</b>${pick.rev ? ' <i>역</i>' : ''}</span>`);
+      `<span class="cross-note">02 ${L(SPREADS.celtic.positions)[1]}<br>` +
+      `<b>${L(card.name)}</b>${pick.rev ? ` <i>${T('revShort')}</i>` : ''}</span>`);
   }
 }
 
@@ -503,23 +524,83 @@ function fill(i, pick) {
    주제와 질문은 둘 다 선택 사항입니다. 적어두면 해석 머리와
    지난 기록에 함께 남아, 나중에 봐도 무엇을 물었는지 알 수 있습니다.
    ──────────────────────────────────────────────────────────── */
-const lensOf = cat => TOPICS.find(t => t.label === cat)?.lens || '';
+const topicOf = id => TOPICS.find(t => t.id === id);
+const lensOf = id => topicOf(id)?.lens || '';
 
 function buildTopics() {
-  const frag = document.createDocumentFragment();
+  const keep = el.askCat.value;
+  el.askCat.innerHTML = '';
+  el.askCat.appendChild(new Option(T('topicHint'), ''));
   let group = null, lens = null;
   for (const t of TOPICS) {
-    const o = document.createElement('option');
-    o.textContent = t.label;
+    const o = new Option(L(t.label), t.id);
     if (t.lens && t.lens !== lens) {
       lens = t.lens;
       group = document.createElement('optgroup');
-      group.label = LENS_KO[t.lens];
+      group.label = L(LENS[t.lens]);
       el.askCat.appendChild(group);
     }
-    (t.lens ? group : frag).appendChild(o);
+    (t.lens ? group : el.askCat).appendChild(o);
   }
-  el.askCat.insertBefore(frag, el.askCat.children[1] || null);
+  el.askCat.value = keep;
+}
+
+const SPREAD_KEYS = Object.keys(SPREADS);
+function buildSpreads() {
+  el.bar.innerHTML = SPREAD_KEYS.map(k => {
+    const sp = SPREADS[k];
+    return `<button class="spread-btn${k === state.key ? ' is-on' : ''}" data-spread="${k}" type="button">` +
+           `<span class="spread-n">${L(sp.positions).length}</span>` +
+           `<span class="spread-name">${L(sp.name)}</span></button>`;
+  }).join('');
+}
+
+function applyUI() {
+  document.documentElement.lang = lang;
+  document.body.dataset.lang = lang;
+  document.title = T('title');
+  const meta = (sel, v) => { const e = document.querySelector(sel); if (e) e.content = v; };
+  meta('meta[name="description"]', T('desc'));
+  meta('meta[property="og:title"]', T('title'));
+  meta('meta[property="og:description"]', T('desc'));
+  el.askQ.placeholder = T('askAsk');
+  el.askQ.setAttribute('aria-label', T('ariaAsk'));
+  el.askCat.setAttribute('aria-label', T('ariaTopic'));
+  el.fan.setAttribute('aria-label', T('ariaFan'));
+  el.bar.setAttribute('aria-label', T('ariaSpread'));
+  el.autoBtn.textContent = T('auto');
+  el.shuffleBtn.textContent = T('shuffle');
+  el.swipe.textContent = T('swipe');
+  el.langBtn.textContent = T('langBtn');
+  $('#settings-label').textContent = T('settings');
+  $('#btn-share').textContent = T('share');
+  $('#log-title').textContent = T('logTitle');
+  $('#btn-clearlog').textContent = T('logClear');
+  $('#colophon').textContent = T('colophon');
+  buildSpreads();
+  buildTopics();
+  syncRevBtn();
+  syncFaceBtn();
+}
+
+// 언어를 바꾸면 이미 그려진 것도 다시 그립니다.
+function switchLang() {
+  if (state.busy || state.auto) return;
+  lang = lang === 'ko' ? 'en' : 'ko';
+  try { localStorage.setItem(LANG_KEY, lang); } catch {}
+  applyUI();
+  const drawn = state.drawn.slice(), done = state.done;
+  renderBoard();
+  drawn.forEach((p, i) => fill(i, p));
+  [...el.fan.children].forEach((b, i) => b.setAttribute('aria-label', T('ariaPick', i + 1)));
+  paintFan();
+  renderLog();
+  if (done) { renderReading(); el.hint.textContent = T('hintDone', drawn.length); }
+  else {
+    el.hint.innerHTML = `${hintLead()} <b id="counter"></b>`;
+    el.counter = $('#counter');
+    syncCounter();
+  }
 }
 
 const readAsk = () => {
@@ -528,7 +609,7 @@ const readAsk = () => {
 };
 
 function setAsk({ cat = '', q = '' } = {}) {
-  el.askCat.value = [...el.askCat.options].some(o => o.value === cat) ? cat : '';
+  el.askCat.value = TOPICS.some(t => t.id === cat) ? cat : '';
   el.askQ.value = q;
   syncAsk();
 }
@@ -540,25 +621,25 @@ function renderReading() {
   const { cat, q, lens } = state.ask || {};
   const head = (cat || q)
     ? `<div class="reading-head">
-         ${cat ? `<p class="reading-cat">${esc(cat)}</p>` : ''}
+         ${cat ? `<p class="reading-cat">${esc(L(topicOf(cat)?.label) || cat)}</p>` : ''}
          ${q ? `<p class="reading-q">${esc(q)}</p>` : ''}
-         <p class="reading-spread">${spread.name}</p>
+         <p class="reading-spread">${L(spread.name)}</p>
        </div>`
-    : `<div class="reading-head"><h2 class="sec-title">${spread.name} 해석</h2></div>`;
+    : `<div class="reading-head"><h2 class="sec-title">${T('reading', L(spread.name))}</h2></div>`;
 
   el.reading.innerHTML = head + state.drawn.map((pick, i) => {
       const c = CARDS[pick.idx];
       return `<article class="entry">
         <div><img class="entry-thumb${pick.rev ? ' is-rev' : ''}"
-             src="assets/cards/${c.id}.webp" alt="${c.ko}" loading="lazy"></div>
+             src="assets/cards/${c.id}.webp" alt="${L(c.name)}" loading="lazy"></div>
         <div>
-          <p class="entry-pos"><span class="entry-num">${String(i + 1).padStart(2, '0')}</span>${spread.positions[i]}</p>
-          <h3 class="entry-name">${c.ko}<span class="entry-numeral">${label(c)}</span>
-            <span class="entry-dir ${pick.rev ? 'dir-rev' : 'dir-up'}">${pick.rev ? '역방향' : '정방향'}</span>
+          <p class="entry-pos"><span class="entry-num">${String(i + 1).padStart(2, '0')}</span>${L(spread.positions)[i]}</p>
+          <h3 class="entry-name">${L(c.name)}<span class="entry-numeral">${label(c)}</span>
+            <span class="entry-dir ${pick.rev ? 'dir-rev' : 'dir-up'}">${pick.rev ? T('reversed') : T('upright')}</span>
           </h3>
-          <ul class="entry-kw">${c.k.map(k => `<li>${k}</li>`).join('')}</ul>
-          <p class="entry-text">${pick.rev ? c.r : c.u}</p>
-          ${lens && c.t?.[lens] ? `<p class="entry-topic"><span>${LENS_KO[lens]}</span>${c.t[lens]}</p>` : ''}
+          <ul class="entry-kw">${L(c.k).map(k => `<li>${k}</li>`).join('')}</ul>
+          <p class="entry-text">${L(pick.rev ? c.r : c.u)}</p>
+          ${lens && c.t?.[lens] ? `<p class="entry-topic"><span>${L(LENS[lens])}</span>${L(c.t[lens])}</p>` : ''}
         </div>
       </article>`;
     }).join('');
@@ -568,7 +649,7 @@ function finish() {
   state.done = true;
   state.ask = readAsk();
   el.fan.classList.add('is-done');
-  el.hint.textContent = `${SPREADS[state.key].positions.length}장을 모두 뽑았습니다.`;
+  el.hint.textContent = T('hintDone', L(SPREADS[state.key].positions).length);
   el.actions.hidden = false;
   el.autoBtn.disabled = true;
   renderReading();
@@ -605,7 +686,7 @@ function scrollToReading() {
 }
 
 function syncCounter() {
-  const total = SPREADS[state.key].positions.length;
+  const total = L(SPREADS[state.key].positions).length;
   el.counter.textContent = `${state.drawn.length} / ${total}`;
 }
 
@@ -656,7 +737,7 @@ function decode(s) {
   const key = SPREAD_ORDER[bytes[0]];
   if (!key) return null;
   const drawn = bytes.slice(1).map(b => ({ idx: b & 127, rev: !!(b & 128) }));
-  if (drawn.length !== SPREADS[key].positions.length) return null;
+  if (drawn.length !== L(SPREADS[key].positions).length) return null;
   if (drawn.some(d => d.idx >= CARDS.length)) return null;
   return { key, drawn };
   } catch { return null; }
@@ -671,7 +752,7 @@ function restore({ key, drawn, ask }) {
   el.fan.querySelectorAll('.fan-card').forEach(b => b.classList.add('is-taken'));
   state.done = true;
   el.fan.classList.add('is-done');
-  el.hint.textContent = '공유된 리딩입니다. 직접 뽑으려면 다시 섞기를 누르세요.';
+  el.hint.textContent = T('sharedNote');
   el.actions.hidden = false;
   el.autoBtn.disabled = true;
   renderReading();
@@ -704,15 +785,15 @@ function renderLog() {
     const when = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     const parsed = decode(r.c);
     const names = parsed
-      ? parsed.drawn.map(p => CARDS[p.idx].ko + (p.rev ? '(역)' : '')).join(', ')
+      ? parsed.drawn.map(p => L(CARDS[p.idx].name) + (p.rev ? ` (${T('revShort')})` : '')).join(', ')
       : '';
     return `<li class="log-item">
       <span class="log-meta">
         <span class="log-when">${when}</span>
-        <span class="log-spread">${SPREADS[r.s]?.name ?? ''}</span>
-        ${r.cat ? `<span class="log-cat">${esc(r.cat)}</span>` : ''}
+        <span class="log-spread">${L(SPREADS[r.s]?.name) ?? ''}</span>
+        ${r.cat ? `<span class="log-cat">${esc(L(topicOf(r.cat)?.label) || r.cat)}</span>` : ''}
       </span>
-      <button class="log-open" type="button" data-i="${i}">다시 보기</button>
+      <button class="log-open" type="button" data-i="${i}">${T('logOpen')}</button>
       ${r.q ? `<span class="log-q">${esc(r.q)}</span>` : ''}
       <span class="log-cards">${names}</span>
     </li>`;
@@ -720,11 +801,13 @@ function renderLog() {
 }
 
 /* ── 이벤트 ─────────────────────────────────────────────── */
-document.querySelectorAll('.spread-btn').forEach(b =>
-  b.addEventListener('click', () => {
-    history.replaceState(null, '', location.pathname + location.search);
-    reset(b.dataset.spread);
-  }));
+el.bar.addEventListener('click', e => {
+  const b = e.target.closest('.spread-btn');
+  if (!b) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  reset(b.dataset.spread);
+});
+el.langBtn.addEventListener('click', switchLang);
 
 el.shuffleBtn.addEventListener('click', shuffleDeck);
 el.autoBtn.addEventListener('click', autoDraw);
@@ -732,12 +815,12 @@ el.askCat.addEventListener('change', syncAsk);
 el.askQ.addEventListener('keydown', e => { if (e.key === 'Enter') el.askQ.blur(); });
 
 function syncRevBtn() {
-  el.revBtn.textContent = useRev ? '역방향 켬' : '역방향 끔';
+  el.revBtn.textContent = T(useRev ? 'revOn' : 'revOff');
   el.revBtn.classList.toggle('is-on', useRev);
   el.revBtn.setAttribute('aria-pressed', String(useRev));
 }
 function syncFaceBtn() {
-  el.faceBtn.textContent = faceUp ? '앞면 보고 뽑기 켬' : '앞면 보고 뽑기 끔';
+  el.faceBtn.textContent = T(faceUp ? 'faceOn' : 'faceOff');
   el.faceBtn.classList.toggle('is-on', faceUp);
   el.faceBtn.setAttribute('aria-pressed', String(faceUp));
 }
@@ -764,9 +847,9 @@ el.revBtn.addEventListener('click', () => {
   if (!state.drawn.length && !state.done) {
     state.deck = shuffled(useRev ? undefined : 0);
     paintFan();
-    toast(useRev ? '역방향을 씁니다' : '전부 정방향으로 놓았습니다');
+    toast(T(useRev ? 'revUse' : 'revNone'));
   } else {
-    toast('다음 섞기부터 적용됩니다');
+    toast(T('applyNext'));
   }
 });
 syncRevBtn();
@@ -775,17 +858,17 @@ $('#btn-share').addEventListener('click', async () => {
   const url = shareUrl();
   try {
     await navigator.clipboard.writeText(url);
-    toast(state.ask?.q ? '질문과 함께 링크를 복사했습니다' : '링크를 복사했습니다');
+    toast(T(state.ask?.q ? 'copiedQ' : 'copied'));
   } catch {
     location.hash = url.split('#')[1];
-    toast('주소창의 링크를 복사해 주세요');
+    toast(T('copyManual'));
   }
 });
 
 $('#btn-clearlog').addEventListener('click', () => {
   writeLog([]);
   renderLog();
-  toast('기록을 지웠습니다');
+  toast(T('logCleared'));
 });
 
 el.logList.addEventListener('click', e => {
@@ -809,8 +892,7 @@ window.addEventListener('resize', () => {
   rt = setTimeout(() => { if (!state.busy) relayout(); }, 180);
 });
 
-buildTopics();
-syncFaceBtn();
+applyUI();
 
 /* ── 시작 ───────────────────────────────────────────────── */
 renderLog();

@@ -6,6 +6,9 @@
 <title>타로 카드 뽑기</title>
 <meta name="description" content="라이더-웨이트 78장 풀덱으로 보는 타로. 원 카드, 쓰리 카드, 켈틱 크로스.">
 <link rel="canonical" href="https://tarot.ysw.kr/">
+<link rel="alternate" hreflang="ko" href="https://tarot.ysw.kr/?lang=ko">
+<link rel="alternate" hreflang="en" href="https://tarot.ysw.kr/?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://tarot.ysw.kr/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tarot.ysw.kr/">
 <meta property="og:title" content="타로 카드 뽑기">
@@ -49,49 +52,34 @@
 
 <main>
   <section class="table" aria-labelledby="table-h">
-    <h2 id="table-h" class="sr-only">카드 뽑기</h2>
+    <h2 id="table-h" class="sr-only" hidden></h2>
 
     <div class="ask">
-      <select class="ask-cat" id="ask-cat" aria-label="주제 고르기">
-        <option value="">주제</option>
+      <select class="ask-cat" id="ask-cat">
+        <option value=""></option>
       </select>
-      <input class="ask-q" id="ask-q" type="text" maxlength="60" autocomplete="off"
-             placeholder="무엇에 대해 보시나요?" aria-label="질문 적기">
+      <input class="ask-q" id="ask-q" type="text" maxlength="60" autocomplete="off">
     </div>
 
-    <div class="spreadbar" role="group" aria-label="스프레드 선택">
-      <button class="spread-btn is-on" data-spread="one" type="button">
-        <span class="spread-n">1</span><span class="spread-name">원 카드</span></button>
-      <button class="spread-btn" data-spread="three" type="button">
-        <span class="spread-n">3</span><span class="spread-name">쓰리 카드</span></button>
-      <button class="spread-btn" data-spread="act" type="button">
-        <span class="spread-n">3</span><span class="spread-name">무엇을 할까</span></button>
-      <button class="spread-btn" data-spread="choice" type="button">
-        <span class="spread-n">5</span><span class="spread-name">선택</span></button>
-      <button class="spread-btn" data-spread="horseshoe" type="button">
-        <span class="spread-n">7</span><span class="spread-name">말굽</span></button>
-      <button class="spread-btn" data-spread="celtic" type="button">
-        <span class="spread-n">10</span><span class="spread-name">켈틱 크로스</span></button>
-      <button class="spread-btn" data-spread="zodiac" type="button">
-        <span class="spread-n">12</span><span class="spread-name">조디악</span></button>
-    </div>
+    <div class="spreadbar" id="spreadbar" role="group"></div>
 
     <div class="fan-stage">
       <div class="fan-scroll" id="fan-scroll">
-        <div class="fan" id="fan" role="group" aria-label="펼쳐진 덱 78장, 카드를 골라 뽑으세요"></div>
+        <div class="fan" id="fan" role="group"></div>
       </div>
-      <p class="fan-swipe" id="fan-swipe" hidden>옆으로 밀어서 전체 보기</p>
+      <p class="fan-swipe" id="fan-swipe" hidden></p>
       <div class="fan-tools">
-        <p class="fan-hint" id="fan-hint">덱에서 카드를 고르세요 <b id="counter">0 / 1</b></p>
+        <p class="fan-hint" id="fan-hint"></p>
         <div class="fan-btns">
-          <button class="btn btn-ghost" id="btn-auto" type="button">자동으로 뽑기</button>
-          <button class="btn btn-ghost" id="btn-shuffle" type="button">덱 섞기</button>
+          <button class="btn btn-ghost" id="btn-auto" type="button"></button>
+          <button class="btn btn-ghost" id="btn-shuffle" type="button"></button>
         </div>
         <details class="settings" id="settings">
-          <summary class="settings-toggle">설정</summary>
+          <summary class="settings-toggle" id="settings-label"></summary>
           <div class="settings-body">
-            <button class="btn btn-toggle is-on" id="btn-rev" type="button" aria-pressed="true">역방향 켬</button>
-            <button class="btn btn-toggle" id="btn-face" type="button" aria-pressed="false">앞면 보고 뽑기 끔</button>
+            <button class="btn btn-toggle is-on" id="btn-rev" type="button" aria-pressed="true"></button>
+            <button class="btn btn-toggle" id="btn-face" type="button" aria-pressed="false"></button>
+            <button class="btn btn-toggle" id="btn-lang" type="button"></button>
           </div>
         </details>
       </div>
@@ -100,7 +88,7 @@
     <div class="board" id="board" data-spread="one"></div>
 
     <div class="actions" id="actions" hidden>
-      <button class="btn btn-ghost" id="btn-share" type="button">결과 링크 복사</button>
+      <button class="btn btn-ghost" id="btn-share" type="button"></button>
     </div>
   </section>
 
@@ -108,15 +96,15 @@
 
   <section class="log" id="log" hidden>
     <div class="log-head">
-      <h2 class="sec-title">지난 리딩</h2>
-      <button class="btn btn-quiet" id="btn-clearlog" type="button">전체 지우기</button>
+      <h2 class="sec-title" id="log-title"></h2>
+      <button class="btn btn-quiet" id="btn-clearlog" type="button"></button>
     </div>
     <ol class="log-list" id="log-list"></ol>
   </section>
 </main>
 
 <footer class="colophon">
-  <p>카드 이미지는 1909년 Rider-Waite-Smith 판본, 퍼블릭 도메인입니다.</p>
+  <p id="colophon"></p>
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
