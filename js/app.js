@@ -1,6 +1,7 @@
 import { CARDS, SPREADS } from './cards.js';
 
 const $ = (s, r = document) => r.querySelector(s);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 const SPREAD_ORDER = ['one','three','celtic'];
 const LOG_KEY = 'tarot.log.v1';
 const REV_KEY = 'tarot.reversals.v1';
@@ -14,13 +15,14 @@ const el = {
   toast: $('#toast'),
   log: $('#log'), logList: $('#log-list'),
   shuffleBtn: $('#btn-shuffle'), autoBtn: $('#btn-auto'), revBtn: $('#btn-rev'),
+  ask: $('.ask'), askCat: $('#ask-cat'), askQ: $('#ask-q'),
 };
 
 let useRev = true;
 try { useRev = localStorage.getItem(REV_KEY) !== 'off'; } catch {}
 
 let gen = 0;   // 판이 새로 깔릴 때마다 올라갑니다. 진행 중이던 뽑기를 구분하는 표.
-let state = { key:'one', deck:[], drawn:[], done:false, busy:false, auto:false };
+let state = { key:'one', deck:[], drawn:[], done:false, busy:false, auto:false, ask:{ cat:'', q:'' } };
 
 /* ── 덱 ──────────────────────────────────────────────────── */
 const rnd = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
@@ -467,12 +469,32 @@ function fill(i, pick) {
   }
 }
 
+/* ── 무엇에 대한 리딩인가 ────────────────────────────────────
+   주제와 질문은 둘 다 선택 사항입니다. 적어두면 해석 머리와
+   지난 기록에 함께 남아, 나중에 봐도 무엇을 물었는지 알 수 있습니다.
+   ──────────────────────────────────────────────────────────── */
+const readAsk = () => ({ cat: el.askCat.value.trim(), q: el.askQ.value.trim().slice(0, 60) });
+
+function setAsk({ cat = '', q = '' } = {}) {
+  el.askCat.value = [...el.askCat.options].some(o => o.value === cat || o.text === cat) ? cat : '';
+  el.askQ.value = q;
+  syncAsk();
+}
+const syncAsk = () => el.ask.classList.toggle('has-topic', !!el.askCat.value);
+
 /* ── 해석 ───────────────────────────────────────────────── */
 function renderReading() {
   const spread = SPREADS[state.key];
-  el.reading.innerHTML = `
-    <div class="reading-head"><h2 class="sec-title">${spread.name} 해석</h2></div>
-    ` + state.drawn.map((pick, i) => {
+  const { cat, q } = state.ask || {};
+  const head = (cat || q)
+    ? `<div class="reading-head">
+         ${cat ? `<p class="reading-cat">${esc(cat)}</p>` : ''}
+         ${q ? `<p class="reading-q">${esc(q)}</p>` : ''}
+         <p class="reading-spread">${spread.name}</p>
+       </div>`
+    : `<div class="reading-head"><h2 class="sec-title">${spread.name} 해석</h2></div>`;
+
+  el.reading.innerHTML = head + state.drawn.map((pick, i) => {
       const c = CARDS[pick.idx];
       return `<article class="entry">
         <div><img class="entry-thumb${pick.rev ? ' is-rev' : ''}"
@@ -491,6 +513,7 @@ function renderReading() {
 
 function finish() {
   state.done = true;
+  state.ask = readAsk();
   el.fan.classList.add('is-done');
   el.hint.textContent = `${SPREADS[state.key].positions.length}장을 모두 뽑았습니다.`;
   el.actions.hidden = false;
@@ -535,7 +558,7 @@ function syncCounter() {
 
 /* ── 새 판 ──────────────────────────────────────────────── */
 function reset(key = state.key) {
-  state = { key, deck: shuffled(useRev ? undefined : 0), drawn: [], done: false, busy: false, auto: false };
+  state = { key, deck: shuffled(useRev ? undefined : 0), drawn: [], done: false, busy: false, auto: false, ask: readAsk() };
   el.hint.innerHTML = `${hintLead()} <b id="counter"></b>`;
   el.counter = $('#counter');
   el.reading.innerHTML = '';
@@ -549,6 +572,24 @@ function reset(key = state.key) {
 }
 
 /* ── 공유 링크 ──────────────────────────────────────────── */
+function shareUrl() {
+  const { cat, q } = state.ask || readAsk();
+  const p = new URLSearchParams({ r: encode() });
+  if (cat) p.set('c', cat);
+  if (q) p.set('q', q);
+  return `${location.origin}${location.pathname}#${p}`;
+}
+
+// 해시에서 카드와 질문을 함께 읽습니다. 질문은 링크에 그대로 실립니다.
+function fromHash() {
+  const h = location.hash.slice(1);
+  if (!h) return null;
+  const p = new URLSearchParams(h);
+  const parsed = decode(p.get('r') || '');
+  if (!parsed) return null;
+  return { ...parsed, ask: { cat: p.get('c') || '', q: (p.get('q') || '').slice(0, 60) } };
+}
+
 function encode() {
   const bytes = [SPREAD_ORDER.indexOf(state.key),
                  ...state.drawn.map(p => p.idx | (p.rev ? 128 : 0))];
@@ -568,8 +609,10 @@ function decode(s) {
   } catch { return null; }
 }
 
-function restore({ key, drawn }) {
+function restore({ key, drawn, ask }) {
   reset(key);
+  if (ask) setAsk(ask);
+  state.ask = readAsk();
   state.drawn = drawn;
   drawn.forEach((p, i) => fill(i, p));
   el.fan.querySelectorAll('.fan-card').forEach(b => b.classList.add('is-taken'));
@@ -594,7 +637,8 @@ const writeLog = v => { try { localStorage.setItem(LOG_KEY, JSON.stringify(v)); 
 
 function saveLog() {
   const log = readLog();
-  log.unshift({ t: new Date().toISOString(), s: state.key, c: encode() });
+  const { cat, q } = state.ask || {};
+  log.unshift({ t: new Date().toISOString(), s: state.key, c: encode(), cat, q });
   writeLog(log.slice(0, LOG_MAX));
   renderLog();
 }
@@ -610,10 +654,14 @@ function renderLog() {
       ? parsed.drawn.map(p => CARDS[p.idx].ko + (p.rev ? '(역)' : '')).join(', ')
       : '';
     return `<li class="log-item">
-      <span class="log-when">${when}</span>
-      <span class="log-spread">${SPREADS[r.s]?.name ?? ''}</span>
-      <span class="log-cards">${names}</span>
+      <span class="log-meta">
+        <span class="log-when">${when}</span>
+        <span class="log-spread">${SPREADS[r.s]?.name ?? ''}</span>
+        ${r.cat ? `<span class="log-cat">${esc(r.cat)}</span>` : ''}
+      </span>
       <button class="log-open" type="button" data-i="${i}">다시 보기</button>
+      ${r.q ? `<span class="log-q">${esc(r.q)}</span>` : ''}
+      <span class="log-cards">${names}</span>
     </li>`;
   }).join('');
 }
@@ -627,6 +675,8 @@ document.querySelectorAll('.spread-btn').forEach(b =>
 
 el.shuffleBtn.addEventListener('click', shuffleDeck);
 el.autoBtn.addEventListener('click', autoDraw);
+el.askCat.addEventListener('change', syncAsk);
+el.askQ.addEventListener('keydown', e => { if (e.key === 'Enter') el.askQ.blur(); });
 
 function syncRevBtn() {
   el.revBtn.textContent = useRev ? '역방향 켬' : '역방향 끔';
@@ -649,12 +699,12 @@ el.revBtn.addEventListener('click', () => {
 syncRevBtn();
 
 $('#btn-share').addEventListener('click', async () => {
-  const url = `${location.origin}${location.pathname}#r=${encode()}`;
+  const url = shareUrl();
   try {
     await navigator.clipboard.writeText(url);
-    toast('링크를 복사했습니다');
+    toast(state.ask?.q ? '질문과 함께 링크를 복사했습니다' : '링크를 복사했습니다');
   } catch {
-    location.hash = 'r=' + encode();
+    location.hash = url.split('#')[1];
     toast('주소창의 링크를 복사해 주세요');
   }
 });
@@ -670,7 +720,10 @@ el.logList.addEventListener('click', e => {
   if (!btn) return;
   const rec = readLog()[+btn.dataset.i];
   const parsed = rec && decode(rec.c);
-  if (parsed) { restore(parsed); el.reading.scrollIntoView({ behavior: 'smooth' }); }
+  if (parsed) {
+    restore({ ...parsed, ask: { cat: rec.cat || '', q: rec.q || '' } });
+    el.reading.scrollIntoView({ behavior: 'smooth' });
+  }
 });
 
 el.scroll.addEventListener('scroll', () => {
@@ -685,5 +738,5 @@ window.addEventListener('resize', () => {
 
 /* ── 시작 ───────────────────────────────────────────────── */
 renderLog();
-const shared = location.hash.startsWith('#r=') && decode(location.hash.slice(3));
+const shared = fromHash();
 if (shared) restore(shared); else reset('one');

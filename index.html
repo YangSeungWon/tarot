@@ -51,6 +51,21 @@
   <section class="table" aria-labelledby="table-h">
     <h2 id="table-h" class="sr-only">카드 뽑기</h2>
 
+    <div class="ask">
+      <select class="ask-cat" id="ask-cat" aria-label="주제 고르기">
+        <option value="">주제</option>
+        <option>오늘</option>
+        <option>연애</option>
+        <option>관계</option>
+        <option>일</option>
+        <option>돈</option>
+        <option>건강</option>
+        <option>결정</option>
+      </select>
+      <input class="ask-q" id="ask-q" type="text" maxlength="60" autocomplete="off"
+             placeholder="무엇에 대해 보시나요?" aria-label="질문 적기">
+    </div>
+
     <div class="spreadbar" role="group" aria-label="스프레드 선택">
       <button class="spread-btn is-on" data-spread="one" type="button">
         <span class="spread-n">1</span><span class="spread-name">원 카드</span></button>
