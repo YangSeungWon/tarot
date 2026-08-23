@@ -297,9 +297,9 @@ function holdHover(ev) {
 
 // 부채의 각 자리에 뒷면을 놓을지, 그 자리에 정해진 카드의 앞면을 놓을지.
 // 섞는 중에는 아직 새 덱이 아니므로 뒷면을 둡니다.
-function paintFan() {
+function paintFan(force = false) {
   const cards = el.fan.children;
-  const show = faceUp && !state.busy && state.deck.length === cards.length;
+  const show = faceUp && (force || !state.busy) && state.deck.length === cards.length;
   for (let i = 0; i < cards.length; i++) {
     const b = cards[i];
     const key = show ? state.deck[i].idx + (state.deck[i].rev ? 'r' : '') : 'back';
@@ -422,6 +422,7 @@ async function shuffleDeck() {
     await wait(calm() ? 200 : 780);
     el.fan.classList.remove('s-cut');
     state.deck = shuffled(chunk);
+    paintFan(true);            // 새 덱이 정해졌으니 앞면 모드면 여기서부터 보여줍니다
     await spinRail();
     el.fan.classList.add('s-spread');
     el.fan.classList.remove('s-gather');
@@ -437,6 +438,7 @@ async function shuffleDeck() {
     el.fan.classList.add('s-gather');
     await wait(500);
     state.deck = shuffled(chunk);
+    paintFan(true);
     [...el.fan.children].forEach((b, i) => { b.style.setProperty('--z', i); });
     el.fan.classList.add('s-spread');
     el.fan.classList.remove('s-gather');
@@ -460,6 +462,7 @@ async function shuffleDeck() {
   await wait(560);
 
   state.deck = shuffled(chunk);
+  paintFan(true);
   [...el.fan.children].forEach((b, i) => { b.style.setProperty('--z', i); });
   el.fan.classList.add('s-spread');            // 3. 펼치기
   el.fan.classList.remove('s-gather');
