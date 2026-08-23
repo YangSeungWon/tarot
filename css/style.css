@@ -177,6 +177,8 @@ body[data-lang="en"] .wordmark-en{
 }
 .fan-card img.is-rev{ transform:rotate(180deg); }
 .board.is-face .card{ transition:none; }
+.board.is-face .card-front,
+.board.is-face .card-back{ transition:none; }
 .fan-card:hover,.fan-card:focus-visible{
   --lift:-30px;
   filter:drop-shadow(0 12px 22px rgba(201,162,39,.4));
@@ -474,10 +476,22 @@ body[data-lang="en"] .wordmark-en{
 .card{
   position:absolute; inset:0;
   transform-style:preserve-3d;
+  -webkit-transform-style:preserve-3d;
   transform:rotateY(180deg);
   transition:transform .82s var(--ease);
 }
 .slot.is-filled .card{ transform:rotateY(0deg); }
+
+/* backface-visibility 만 믿지 않습니다. 일부 브라우저(특히 사파리)에서
+   뒷면이 걸러지지 않아 좌우가 뒤집힌 앞면이 먼저 보이는 일이 있습니다.
+   카드가 90도를 넘는 순간 두 면의 visibility 를 맞바꿔, 앞면이 등지고 있는
+   동안에는 아예 그릴 수 없게 만듭니다.
+   이징이 앞쪽에 몰려 있어 90도를 지나는 때는 절반(0.41s)이 아니라 0.2s입니다. */
+.card-front{ visibility:hidden; }
+.card-back{ visibility:visible; }
+.card-front, .card-back{ transition:visibility 0s .2s; }
+.slot.is-filled .card-front{ visibility:visible; }
+.slot.is-filled .card-back{ visibility:hidden; }
 .card-face{
   position:absolute; inset:0;
   backface-visibility:hidden; -webkit-backface-visibility:hidden;
@@ -746,6 +760,8 @@ body[data-lang="en"] .wordmark-en{
   /* 뒤집기 — 회전 대신 뒷면이 걷힙니다 */
   .card-wrap{ transform:none !important; }
   .card{ transform:none !important; transform-style:flat; }
+  .card-front, .card-back{ transition-delay:0s !important; }
+  .card-front{ visibility:visible; }
   .card-face{ backface-visibility:visible; -webkit-backface-visibility:visible; }
   .card-back{ transform:none !important; z-index:2; }
   .card-front{ z-index:1; }
