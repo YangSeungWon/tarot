@@ -9,11 +9,11 @@ python3 - <<'PY'
 import re
 s = open('index.html').read()
 s = s.replace('<html lang="ko">', '<html lang="en" data-lang="en">')
-s = s.replace('<title>타로 카드 뽑기</title>', '<title>Tarot Card Reading</title>')
+s = s.replace('<title>무료 타로 카드 뽑기</title>', '<title>Free Tarot Card Reading</title>')
 s = re.sub(r'<meta name="description" content="[^"]*">',
-           '<meta name="description" content="Tarot with the full 78-card Rider-Waite deck. One card, three cards, Celtic Cross.">', s)
+           '<meta name="description" content="Free tarot with the full 78-card Rider-Waite deck. Upright and reversed meanings for every card. One card, three cards, Celtic Cross.">', s)
 s = re.sub(r'<meta property="og:title" content="[^"]*">',
-           '<meta property="og:title" content="Tarot Card Reading">', s)
+           '<meta property="og:title" content="Free Tarot Card Reading">', s)
 s = re.sub(r'<meta property="og:description" content="[^"]*">',
            '<meta property="og:description" content="Pick a card straight from a deck fanned out in front of you.">', s)
 s = s.replace('<link rel="canonical" href="https://tarot.ysw.kr/">',

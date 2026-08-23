@@ -1,8 +1,8 @@
 // UI 문자열 두 벌. 값이 함수면 인자를 받아 문장을 만듭니다.
 export const UI = {
-  title:      { ko:'타로 카드 뽑기', en:'Tarot Card Reading' },
-  desc:       { ko:'라이더-웨이트 78장 풀덱으로 보는 타로. 원 카드, 쓰리 카드, 켈틱 크로스.',
-                en:'Tarot with the full 78-card Rider-Waite deck. One card, three cards, Celtic Cross.' },
+  title:      { ko:'무료 타로 카드 뽑기', en:'Free Tarot Card Reading' },
+  desc:       { ko:'라이더-웨이트 78장 풀덱으로 보는 무료 타로. 카드마다 정방향과 역방향 해석을 함께 봅니다. 원 카드, 쓰리 카드, 켈틱 크로스.',
+                en:'Free tarot with the full 78-card Rider-Waite deck. Upright and reversed meanings for every card. One card, three cards, Celtic Cross.' },
   topicHint:  { ko:'주제', en:'Topic' },
   askAsk:     { ko:'무엇에 대해 보시나요?', en:'What is this about?' },
   hintPick:   { ko:'덱에서 카드를 고르세요', en:'Pick a card from the deck' },
