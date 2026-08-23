@@ -1,4 +1,4 @@
-import { CARDS, SPREADS } from './cards.js';
+import { CARDS, SPREADS, TOPICS, LENS_KO } from './cards.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
@@ -473,10 +473,32 @@ function fill(i, pick) {
    주제와 질문은 둘 다 선택 사항입니다. 적어두면 해석 머리와
    지난 기록에 함께 남아, 나중에 봐도 무엇을 물었는지 알 수 있습니다.
    ──────────────────────────────────────────────────────────── */
-const readAsk = () => ({ cat: el.askCat.value.trim(), q: el.askQ.value.trim().slice(0, 60) });
+const lensOf = cat => TOPICS.find(t => t.label === cat)?.lens || '';
+
+function buildTopics() {
+  const frag = document.createDocumentFragment();
+  let group = null, lens = null;
+  for (const t of TOPICS) {
+    const o = document.createElement('option');
+    o.textContent = t.label;
+    if (t.lens && t.lens !== lens) {
+      lens = t.lens;
+      group = document.createElement('optgroup');
+      group.label = LENS_KO[t.lens];
+      el.askCat.appendChild(group);
+    }
+    (t.lens ? group : frag).appendChild(o);
+  }
+  el.askCat.insertBefore(frag, el.askCat.children[1] || null);
+}
+
+const readAsk = () => {
+  const cat = el.askCat.value.trim();
+  return { cat, lens: lensOf(cat), q: el.askQ.value.trim().slice(0, 60) };
+};
 
 function setAsk({ cat = '', q = '' } = {}) {
-  el.askCat.value = [...el.askCat.options].some(o => o.value === cat || o.text === cat) ? cat : '';
+  el.askCat.value = [...el.askCat.options].some(o => o.value === cat) ? cat : '';
   el.askQ.value = q;
   syncAsk();
 }
@@ -485,7 +507,7 @@ const syncAsk = () => el.ask.classList.toggle('has-topic', !!el.askCat.value);
 /* ── 해석 ───────────────────────────────────────────────── */
 function renderReading() {
   const spread = SPREADS[state.key];
-  const { cat, q } = state.ask || {};
+  const { cat, q, lens } = state.ask || {};
   const head = (cat || q)
     ? `<div class="reading-head">
          ${cat ? `<p class="reading-cat">${esc(cat)}</p>` : ''}
@@ -500,12 +522,13 @@ function renderReading() {
         <div><img class="entry-thumb${pick.rev ? ' is-rev' : ''}"
              src="assets/cards/${c.id}.webp" alt="${c.ko}" loading="lazy"></div>
         <div>
-          <p class="entry-pos">${String(i + 1).padStart(2, '0')} ${spread.positions[i]}</p>
+          <p class="entry-pos"><span class="entry-num">${String(i + 1).padStart(2, '0')}</span>${spread.positions[i]}</p>
           <h3 class="entry-name">${c.ko}<span class="entry-numeral">${label(c)}</span>
             <span class="entry-dir ${pick.rev ? 'dir-rev' : 'dir-up'}">${pick.rev ? '역방향' : '정방향'}</span>
           </h3>
           <ul class="entry-kw">${c.k.map(k => `<li>${k}</li>`).join('')}</ul>
           <p class="entry-text">${pick.rev ? c.r : c.u}</p>
+          ${lens && c.t?.[lens] ? `<p class="entry-topic"><span>${LENS_KO[lens]}</span>${c.t[lens]}</p>` : ''}
         </div>
       </article>`;
     }).join('');
@@ -735,6 +758,8 @@ window.addEventListener('resize', () => {
   clearTimeout(rt);
   rt = setTimeout(() => { if (!state.busy) relayout(); }, 180);
 });
+
+buildTopics();
 
 /* ── 시작 ───────────────────────────────────────────────── */
 renderLog();
