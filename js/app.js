@@ -674,7 +674,7 @@ function renderReading() {
           </h3>
           <ul class="entry-kw">${L(c.k).map(k => `<li>${k}</li>`).join('')}</ul>
           <p class="entry-text">${L(pick.rev ? c.r : c.u)}</p>
-          ${lens && c.t?.[lens] ? `<p class="entry-topic"><span>${L(LENS[lens])}</span>${L(c.t[lens])}</p>` : ''}
+          ${lens && c.t?.[lens] ? `<p class="entry-topic"><span>${L(LENS[lens])}</span>${L(c.t[lens][pick.rev ? 'r' : 'u'])}</p>` : ''}
         </div>
       </article>`;
     }).join('');

@@ -74,6 +74,9 @@ const foot = `</main>
 
 const write = (p, s) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, s); };
 
+const lensRows = (c, lang, dir) => ['love','work','money','rel'].map(k =>
+  `<div class="lens-row"><b>${esc(LENS[k][lang])}</b><span>${esc(c.t[k][dir][lang])}</span></div>`).join('\n      ');
+
 const GROUPS = ['major','wands','cups','swords','pents'];
 const groupOf = c => c.arcana === 'major' ? 'major' : c.suit;
 
@@ -104,13 +107,13 @@ for (const lang of ['ko','en']) {
     </div>
   </header>
 
-  <section class="sec up"><h2>${esc(t.up)}</h2><p>${esc(c.u[lang])}</p></section>
-  <section class="sec rev"><h2>${esc(t.rev)}</h2><p>${esc(c.r[lang])}</p></section>
-
-  <section class="lenses">
-    <h2>${esc(t.lenses)}</h2>
-    ${['love','work','money','rel'].map(k =>
-      `<div class="lens-row"><b>${esc(LENS[k][lang])}</b><span>${esc(c.t[k][lang])}</span></div>`).join('\n    ')}
+  <section class="sec up">
+    <h2>${esc(t.up)}</h2><p>${esc(c.u[lang])}</p>
+    <div class="lenses">${lensRows(c, lang, 'u')}</div>
+  </section>
+  <section class="sec rev">
+    <h2>${esc(t.rev)}</h2><p>${esc(c.r[lang])}</p>
+    <div class="lenses">${lensRows(c, lang, 'r')}</div>
   </section>
 
   <a class="cta" href="${t.home}">${esc(t.cta)}</a>

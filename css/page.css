@@ -49,11 +49,7 @@
   color:var(--parchment-dim);
 }
 
-.lenses{ border-top:1px solid var(--veil-line); padding-top:1.5rem; }
-.lenses h2{
-  font-family:var(--f-body); font-size:.82rem; font-weight:500;
-  letter-spacing:.12em; color:var(--mist); margin:0 0 1rem;
-}
+.lenses{ margin-top:1.1rem; padding-top:1rem; border-top:1px solid var(--veil-line); }
 .lens-row{ display:grid; grid-template-columns:4.5rem 1fr; gap:.9rem; padding:.55rem 0; }
 .lens-row b{
   font-family:var(--f-body); font-size:.76rem; font-weight:400; letter-spacing:.08em;
