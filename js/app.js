@@ -34,8 +34,10 @@ let lang = 'ko';
 try {
   const q = new URLSearchParams(location.search).get('lang');
   const saved = localStorage.getItem(LANG_KEY);
+  const forced = document.documentElement.dataset.lang;   // /en/ 이 심어둔 기본값
   lang = LANGS.includes(q) ? q
        : LANGS.includes(saved) ? saved
+       : LANGS.includes(forced) ? forced
        : (navigator.language || '').toLowerCase().startsWith('ko') ? 'ko' : 'en';
 } catch {}
 const L = v => (v && typeof v === 'object' && lang in v) ? v[lang] : v;
@@ -306,7 +308,7 @@ function paintFan() {
       b.innerHTML = '<svg><use href="#cardback"/></svg>';
     } else {
       const p = state.deck[i], c = CARDS[p.idx];
-      b.innerHTML = `<img src="assets/cards/${c.id}.webp" alt="${L(c.name)}"` +
+      b.innerHTML = `<img src="/assets/cards/${c.id}.webp" alt="${L(c.name)}"` +
                     `${p.rev ? ' class="is-rev"' : ''} loading="lazy" decoding="async">`;
     }
   }
@@ -504,7 +506,7 @@ function fill(i, pick) {
   const front = $('.card-front', slot);
   front.classList.toggle('is-rev', pick.rev);
   front.innerHTML =
-    `<img src="assets/cards/${card.id}.webp" alt="${L(card.name)}" loading="lazy" decoding="async">`;
+    `<img src="/assets/cards/${card.id}.webp" alt="${L(card.name)}" loading="lazy" decoding="async">`;
   $('.slot-caption', slot).innerHTML =
     `${L(card.name)}${pick.rev ? `<em>${T('reversed')}</em>` : ''}`;
   // 빈 자리에 카드가 먼저 놓이고(뒷면), 잠시 뒤 뒤집힙니다.
@@ -631,7 +633,7 @@ function renderReading() {
       const c = CARDS[pick.idx];
       return `<article class="entry">
         <div><img class="entry-thumb${pick.rev ? ' is-rev' : ''}"
-             src="assets/cards/${c.id}.webp" alt="${L(c.name)}" loading="lazy"></div>
+             src="/assets/cards/${c.id}.webp" alt="${L(c.name)}" loading="lazy"></div>
         <div>
           <p class="entry-pos"><span class="entry-num">${String(i + 1).padStart(2, '0')}</span>${L(spread.positions)[i]}</p>
           <h3 class="entry-name">${L(c.name)}<span class="entry-numeral">${label(c)}</span>
@@ -782,7 +784,8 @@ function renderLog() {
   el.log.hidden = log.length === 0;
   el.logList.innerHTML = log.map((r, i) => {
     const d = new Date(r.t);
-    const when = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const when = d.toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US',
+      { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
     const parsed = decode(r.c);
     const names = parsed
       ? parsed.drawn.map(p => L(CARDS[p.idx].name) + (p.rev ? ` (${T('revShort')})` : '')).join(', ')

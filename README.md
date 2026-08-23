@@ -1,6 +1,11 @@
 # 타로 — 78장 라이더-웨이트
 
-한국어와 영어 두 언어. `?lang=ko` / `?lang=en` 또는 설정에서 전환합니다.
+한국어와 영어 두 언어.
+
+- `/` 는 브라우저 설정을 따르고, `/en/` 은 영어로 엽니다. 설정에서 언제든 전환됩니다.
+- `/en/index.html` 은 `scripts/build-en.sh` 가 `index.html` 에서 만듭니다.
+  크롤러와 링크 미리보기는 자바스크립트를 돌리지 않아 영어 `<head>` 가 박힌 페이지가 따로 필요합니다.
+  **`index.html` 을 고치면 이 스크립트를 다시 돌리세요.**
 
 정적 웹 타로. 서버 없이 브라우저에서만 동작합니다.
 
@@ -52,6 +57,7 @@ js/cards.js         78장 데이터(정/역 해석, 키워드, 주제별 한 줄
 js/i18n.js          UI 문자열 두 벌
 js/app.js           셔플·뽑기·해석·공유·기록
 scripts/fetch-cards.sh   카드 이미지 내려받기
+scripts/build-en.sh      en/index.html 생성
 ```
 
 ## 커스텀 도메인 (tarot.ysw.kr)

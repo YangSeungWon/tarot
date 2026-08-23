@@ -4,7 +4,7 @@ export const UI = {
   desc:       { ko:'라이더-웨이트 78장 풀덱으로 보는 타로. 원 카드, 쓰리 카드, 켈틱 크로스.',
                 en:'Tarot with the full 78-card Rider-Waite deck. One card, three cards, Celtic Cross.' },
   topicHint:  { ko:'주제', en:'Topic' },
-  askAsk:     { ko:'무엇에 대해 보시나요?', en:'What are you asking about?' },
+  askAsk:     { ko:'무엇에 대해 보시나요?', en:'What is this about?' },
   hintPick:   { ko:'덱에서 카드를 고르세요', en:'Pick a card from the deck' },
   hintRail:   { ko:'돌려서 가운데로 놓고 누르세요', en:'Spin to the centre, then tap' },
   hintDone:   { ko: n => `${n}장을 모두 뽑았습니다.`, en: n => `All ${n} cards are drawn.` },
