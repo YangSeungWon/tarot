@@ -347,13 +347,13 @@ function take(btn, ev) {
   const at = state.drawn.length - 1;
   syncCounter();
 
-  if (at + 1 === total) finish();        // 기다리지 않고 곧바로 해석으로
-
   const g = gen;
-  setTimeout(() => {                     // 카드는 그동안 배치판으로 넘어갑니다
+  setTimeout(() => {                     // 카드가 배치판으로 넘어갑니다
     if (g !== gen) return;               // 판이 갈렸으면 그만둡니다
     btn.classList.add('is-taken');
     fill(at, pick);
+    // 마지막 장이 자리에 놓인 뒤에야 뒤집기를 시작합니다.
+    if (at + 1 === total) finish();
   }, LIFT_MS());
 }
 
@@ -539,10 +539,8 @@ function fill(i, pick) {
     `<img src="/assets/cards/${card.id}.webp" alt="${L(card.name)}" loading="lazy" decoding="async">`;
   $('.slot-caption', slot).innerHTML =
     `${L(card.name)}${pick.rev ? `<em>${T('reversed')}</em>` : ''}`;
-  // 빈 자리에 카드가 먼저 놓이고(뒷면), 잠시 뒤 뒤집힙니다.
+  // 여기서는 자리에 엎어놓기만 합니다. 뒤집기는 N장이 다 깔린 뒤에.
   requestAnimationFrame(() => slot.classList.add('is-placing'));
-  if (faceUp) requestAnimationFrame(() => slot.classList.add('is-filled'));
-  else setTimeout(() => slot.classList.add('is-filled'), 340);
   // 켈틱 크로스의 2번은 1번 위에 가로로 놓이므로 이름을 1번 캡션에 덧붙입니다.
   if (state.key === 'celtic' && i === 1) {
     const first = $('.slot[data-i="0"] .slot-caption', el.board);
@@ -628,6 +626,7 @@ function switchLang() {
   const drawn = state.drawn.slice(), done = state.done;
   renderBoard();
   drawn.forEach((p, i) => fill(i, p));
+  if (done) showAll();
   [...el.fan.children].forEach((b, i) => b.setAttribute('aria-label', T('ariaPick', i + 1)));
   paintFan();
   renderLog();
@@ -687,16 +686,36 @@ function finish() {
   el.fan.classList.add('is-done');
   el.hint.textContent = T('hintDone', L(SPREADS[state.key].positions).length);
   el.actions.hidden = false;
-  renderReading();
   saveLog();
   syncButtons();
-  // 카드가 자리에 놓이고(0.38초) 뒤집히기 시작하는 것까지 보고 내려갑니다.
-  setTimeout(scrollToReading, calm() ? 300 : 700);
+  revealDrawn();
 }
 
+/* ── 뒤집기 ──────────────────────────────────────────────────
+   리더는 N장을 자리마다 엎어서 깔고, 그다음 하나씩 넘깁니다.
+   배치가 다 만들어진 모습을 보고 나서 뒤집는 것이 순서입니다.
+   ──────────────────────────────────────────────────────────── */
+async function revealDrawn() {
+  const slots = [...el.board.querySelectorAll('.slot')];
+  glideTo(el.board, 24);                       // 1. 깔린 자리로 내려갑니다
+  await wait(calm() ? 0 : 460);
+
+  const step = calm() ? 90                     // 2. 순서대로 넘깁니다
+    : slots.length <= 3 ? 320
+    : slots.length <= 7 ? 230 : 170;
+  for (const s of slots) { s.classList.add('is-filled'); await wait(step); }
+
+  await wait(calm() ? 200 : 900);              // 3. 마지막 장을 보고 해석으로
+  renderReading();
+  glideTo(el.reading);
+}
+
+// 공유 링크나 기록을 다시 볼 때는 연출 없이 펼쳐진 상태로 둡니다.
+const showAll = () => el.board.querySelectorAll('.slot').forEach(s => s.classList.add('is-filled'));
+
 // 기본 smooth 스크롤은 거리가 멀수록 길어집니다. 거리와 무관하게 짧게 끝냅니다.
-function scrollToReading() {
-  const to = el.reading.getBoundingClientRect().top + window.scrollY;
+function glideTo(node, gap = 0) {
+  const to = node.getBoundingClientRect().top + window.scrollY - gap;
   if (calm()) { window.scrollTo(0, to); return; }
 
   const from = window.scrollY, dist = to - from;
@@ -785,6 +804,7 @@ function restore({ key, drawn, ask }) {
   state.ask = readAsk();
   state.drawn = drawn;
   drawn.forEach((p, i) => fill(i, p));
+  showAll();
   el.fan.querySelectorAll('.fan-card').forEach(b => b.classList.add('is-taken'));
   state.done = true;
   el.fan.classList.add('is-done');
