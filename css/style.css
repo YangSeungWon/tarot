@@ -101,7 +101,7 @@ body[data-lang="en"] .wordmark-en{
 /* ── 무엇에 대한 리딩인가 ─────────────────────────────────── */
 .ask{
   display:flex; justify-content:center; gap:.4rem;
-  max-width:30rem; margin:0 auto clamp(.6rem,1.8vw,.9rem);
+  max-width:30rem; margin:clamp(.6rem,1.8vw,.9rem) auto 0;
 }
 .ask-cat, .ask-q{
   font-family:var(--f-body); font-size:.85rem; font-weight:300;
