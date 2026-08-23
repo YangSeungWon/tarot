@@ -155,7 +155,7 @@ function layoutRail() {
   const stageW = el.scroll.clientWidth;
   const pad = Math.max(0, stageW / 2 - cw / 2);
 
-  rail = { n: cards.length, cw, gap: RAIL.gap, pad, stageW };
+  rail = { n: cards.length, cw, gap: RAIL.gap, pad, stageW, c0: 0, step: RAIL.gap };
   el.fan.style.width = '';
   el.fan.style.height = '';
   el.fan.style.setProperty('--rail-gap', RAIL.gap + 'px');
@@ -166,8 +166,21 @@ function layoutRail() {
   el.stage.style.setProperty('--mark-top', (el.scroll.offsetTop + RAIL.top - 6) + 'px');
   cards.forEach(b => { b.dataset.far = '1'; });
   railLo = 0; railHi = cards.length - 1; centerIdx = -1;
+  calibrateRail();
   centerOn(Math.floor(cards.length / 2), false);
   railTick();
+}
+
+// 자리를 계산으로만 잡으면 여백·음수 마진·소수점이 쌓여 한 칸씩 어긋납니다.
+// 실제로 놓인 첫 두 장을 재서 기준점과 간격을 보정합니다.
+function calibrateRail() {
+  const cards = el.fan.children;
+  if (!rail || cards.length < 2) return;
+  const scLeft = el.scroll.getBoundingClientRect().left;
+  const track = e => { const r = e.getBoundingClientRect();
+    return r.left + r.width / 2 - scLeft + el.scroll.scrollLeft; };
+  const a = track(cards[0]), b = track(cards[1]);
+  if (Number.isFinite(a) && b > a) { rail.c0 = a; rail.step = b - a; }
 }
 
 function railTick() {
@@ -176,8 +189,8 @@ function railTick() {
   const cards = el.fan.children;
   const { cw, gap, pad, stageW, n } = rail;
   const c = el.scroll.scrollLeft + stageW / 2;      // 가운데 자리의 띠 좌표
-  const span = Math.ceil((stageW / 2 + cw) / gap) + 1;
-  const mid = (c - pad - cw / 2) / gap;
+  const span = Math.ceil((stageW / 2 + cw) / rail.step) + 1;
+  const mid = (c - rail.c0) / rail.step;
   const lo = Math.max(0, Math.floor(mid - span));
   const hi = Math.min(n - 1, Math.ceil(mid + span));
 
@@ -187,7 +200,7 @@ function railTick() {
     const b = cards[i];
     if (!b) continue;
     if (b.dataset.far) delete b.dataset.far;
-    const d = pad + cw / 2 + i * gap - c;
+    const d = rail.c0 + i * rail.step - c;
     const t = Math.max(-RAIL.tMax, Math.min(RAIL.tMax, d / RAIL.R));
     const td = Math.max(-RAIL.tDrop, Math.min(RAIL.tDrop, t));   // 아래로 잘리지 않게
     b.style.setProperty('--ra', (t * RAIL.rot).toFixed(2) + 'deg');
@@ -207,7 +220,7 @@ function railTick() {
 
 function centerOn(i, smooth) {
   if (!rail) return;
-  const left = rail.pad + rail.cw / 2 + i * rail.gap - rail.stageW / 2;
+  const left = rail.c0 + i * rail.step - rail.stageW / 2;
   el.scroll.scrollTo(smooth && !calm() ? { left, behavior: 'smooth' } : { left });
 }
 
@@ -216,7 +229,7 @@ function spinRail() {
   if (!rail) return Promise.resolve();
   let i = rnd(rail.n);
   if (Math.abs(i - centerIdx) < 25) i = (centerIdx + 26 + rnd(26)) % rail.n;
-  const to = rail.pad + rail.cw / 2 + i * rail.gap - rail.stageW / 2;
+  const to = rail.c0 + i * rail.step - rail.stageW / 2;
   if (calm()) { el.scroll.scrollLeft = to; return Promise.resolve(); }
 
   const from = el.scroll.scrollLeft, t0 = performance.now(), dur = 950;
@@ -254,13 +267,23 @@ function renderFan() {
   relayout();
 }
 
-// 띠에서는 가운데 자리에 온 카드만 뽑힙니다. 다른 카드를 누르면 그 카드를
-// 가운데로 돌려놓습니다. 손가락으로 정확히 짚기 어려운 화면이라서입니다.
+// 띠에서는 어느 카드를 짚었는지가 아니라 띠의 어디를 눌렀는지로 판단합니다.
+// 가운데 구역(테두리 좌우로 넉넉히)을 누르면 테두리 안의 카드를 뽑고,
+// 그 바깥을 누르면 그 카드를 가운데로 돌려놓습니다. 카드 폭이 80px이라
+// 그것만 정확히 짚으라고 하면 손가락에 가혹합니다.
+const CENTER_HIT = 78;   // 가운데 구역의 반폭(px)
+
+function inCenterZone(ev) {
+  const r = el.scroll.getBoundingClientRect();
+  return Math.abs(ev.clientX - (r.left + r.width / 2)) <= CENTER_HIT;
+}
+
 function pick(btn, ev) {
   if (!isRail()) return take(btn, ev);
   const i = +btn.dataset.n;
-  if (i === centerIdx) take(btn, ev);
-  else centerOn(i, true);
+  // 키보드로 활성화하면 좌표가 없습니다(detail 0). 그때는 가운데 카드면 바로 뽑습니다.
+  if (ev && ev.detail === 0 && i === centerIdx) return take(btn, ev);
+  centerOn(i, true);
 }
 
 function relayout() {
@@ -884,6 +907,16 @@ el.logList.addEventListener('click', e => {
     el.reading.scrollIntoView({ behavior: 'smooth' });
   }
 });
+
+// 가운데 구역의 클릭은 카드 핸들러보다 먼저 가로챕니다.
+el.scroll.addEventListener('click', e => {
+  if (!isRail() || state.done || state.busy || state.auto) return;
+  if (e.detail === 0 || !inCenterZone(e)) return;   // 좌표 없는 클릭은 카드 쪽에서 처리
+  const b = el.fan.children[centerIdx];
+  if (!b || b.classList.contains('is-drawing')) return;
+  e.stopPropagation();
+  take(b, e);
+}, true);
 
 el.scroll.addEventListener('scroll', () => {
   if (rail && !railRaf) railRaf = requestAnimationFrame(railTick);

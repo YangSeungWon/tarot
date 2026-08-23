@@ -255,7 +255,7 @@ body[data-lang="en"] .wordmark-en{
   padding:var(--rail-top) var(--rail-pad) var(--rail-bottom);
 }
 .fan.is-rail .fan-card{
-  position:static; flex:0 0 var(--card-w); height:var(--card-h);
+  position:relative; flex:0 0 var(--card-w); height:var(--card-h);
   margin:0 calc(var(--rail-gap) - var(--card-w)) 0 0;
   scroll-snap-align:center;
   transform-origin:50% 50%;
@@ -271,6 +271,7 @@ body[data-lang="en"] .wordmark-en{
 .fan.is-rail .fan-card.is-center{
   filter:drop-shadow(0 10px 20px rgba(201,162,39,.45));
 }
+
 /* 뽑기: 가운데에서 똑바로 들어올려 넘깁니다 */
 .fan.is-rail .fan-card.is-drawing{
   z-index:600; pointer-events:none;
