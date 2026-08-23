@@ -2,9 +2,11 @@ import { CARDS, SPREADS, TOPICS, LENS_KO } from './cards.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
-const SPREAD_ORDER = ['one','three','celtic'];
+// 공유 링크가 이 순서의 번호를 씁니다. 새 배치는 뒤에만 덧붙입니다.
+const SPREAD_ORDER = ['one','three','celtic','act','choice','horseshoe','zodiac'];
 const LOG_KEY = 'tarot.log.v1';
 const REV_KEY = 'tarot.reversals.v1';
+const FACE_KEY = 'tarot.faceup.v1';
 const LOG_MAX = 20;
 
 const el = {
@@ -14,12 +16,15 @@ const el = {
   board: $('#board'), reading: $('#reading'), actions: $('#actions'),
   toast: $('#toast'),
   log: $('#log'), logList: $('#log-list'),
-  shuffleBtn: $('#btn-shuffle'), autoBtn: $('#btn-auto'), revBtn: $('#btn-rev'),
+  shuffleBtn: $('#btn-shuffle'), autoBtn: $('#btn-auto'),
+  revBtn: $('#btn-rev'), faceBtn: $('#btn-face'), settings: $('#settings'),
   ask: $('.ask'), askCat: $('#ask-cat'), askQ: $('#ask-q'),
 };
 
 let useRev = true;
+let faceUp = false;
 try { useRev = localStorage.getItem(REV_KEY) !== 'off'; } catch {}
+try { faceUp = localStorage.getItem(FACE_KEY) === 'on'; } catch {}
 
 let gen = 0;   // 판이 새로 깔릴 때마다 올라갑니다. 진행 중이던 뽑기를 구분하는 표.
 let state = { key:'one', deck:[], drawn:[], done:false, busy:false, auto:false, ask:{ cat:'', q:'' } };
@@ -223,6 +228,7 @@ function renderFan() {
     frag.appendChild(b);
   }
   el.fan.appendChild(frag);
+  paintFan();
   relayout();
 }
 
@@ -264,6 +270,26 @@ function holdHover(ev) {
     hoverArmed = null;
   };
   el.fan.addEventListener('pointermove', hoverArmed);
+}
+
+// 부채의 각 자리에 뒷면을 놓을지, 그 자리에 정해진 카드의 앞면을 놓을지.
+// 섞는 중에는 아직 새 덱이 아니므로 뒷면을 둡니다.
+function paintFan() {
+  const cards = el.fan.children;
+  const show = faceUp && !state.busy && state.deck.length === cards.length;
+  for (let i = 0; i < cards.length; i++) {
+    const b = cards[i];
+    const key = show ? state.deck[i].idx + (state.deck[i].rev ? 'r' : '') : 'back';
+    if (b.dataset.side === key) continue;
+    b.dataset.side = key;
+    if (!show) {
+      b.innerHTML = '<svg><use href="#cardback"/></svg>';
+    } else {
+      const p = state.deck[i], c = CARDS[p.idx];
+      b.innerHTML = `<img src="assets/cards/${c.id}.webp" alt="${c.ko}"` +
+                    `${p.rev ? ' class="is-rev"' : ''} loading="lazy" decoding="async">`;
+    }
+  }
 }
 
 function take(btn, ev) {
@@ -355,6 +381,7 @@ async function shuffleDeck() {
 
   el.hint.textContent = '덱을 섞는 중';
   el.fan.classList.add('is-busy');
+  paintFan();                         // 섞는 동안에는 뒷면으로
   const n = CARDS.length;
 
   // 180도 돌릴 뭉치. 보이는 뭉치가 곧 역방향이 되는 카드들입니다.
@@ -422,15 +449,17 @@ function finishShuffle() {
   el.fan.classList.remove('is-busy');
   el.shuffleBtn.disabled = false;
   el.autoBtn.disabled = false;
+  state.busy = false;
+  paintFan();                       // 섞기가 끝난 뒤라야 새 덱의 앞면을 칠합니다
   el.hint.innerHTML = `${hintLead()} <b id="counter"></b>`;
   el.counter = $('#counter');
   syncCounter();
-  state.busy = false;
 }
 
 /* ── 배치판 ─────────────────────────────────────────────── */
 function renderBoard() {
   gen++;
+  el.board.classList.toggle('is-face', faceUp);   // 앞면 모드면 뒤집는 연출을 건너뜁니다
   const spread = SPREADS[state.key];
   el.board.dataset.spread = state.key;
   el.board.innerHTML = spread.positions.map((pos, i) => `
@@ -460,7 +489,8 @@ function fill(i, pick) {
     `${card.ko}${pick.rev ? '<em>역방향</em>' : ''}`;
   // 빈 자리에 카드가 먼저 놓이고(뒷면), 잠시 뒤 뒤집힙니다.
   requestAnimationFrame(() => slot.classList.add('is-placing'));
-  setTimeout(() => slot.classList.add('is-filled'), 340);
+  if (faceUp) requestAnimationFrame(() => slot.classList.add('is-filled'));
+  else setTimeout(() => slot.classList.add('is-filled'), 340);
   // 켈틱 크로스의 2번은 1번 위에 가로로 놓이므로 이름을 1번 캡션에 덧붙입니다.
   if (state.key === 'celtic' && i === 1) {
     const first = $('.slot[data-i="0"] .slot-caption', el.board);
@@ -706,6 +736,25 @@ function syncRevBtn() {
   el.revBtn.classList.toggle('is-on', useRev);
   el.revBtn.setAttribute('aria-pressed', String(useRev));
 }
+function syncFaceBtn() {
+  el.faceBtn.textContent = faceUp ? '앞면 보고 뽑기 켬' : '앞면 보고 뽑기 끔';
+  el.faceBtn.classList.toggle('is-on', faceUp);
+  el.faceBtn.setAttribute('aria-pressed', String(faceUp));
+}
+el.faceBtn.addEventListener('click', () => {
+  if (state.busy || state.auto) return;
+  faceUp = !faceUp;
+  try { localStorage.setItem(FACE_KEY, faceUp ? 'on' : 'off'); } catch {}
+  syncFaceBtn();
+  el.board.classList.toggle('is-face', faceUp);
+  paintFan();
+});
+
+// 설정 바깥을 누르면 닫습니다
+document.addEventListener('click', e => {
+  if (el.settings.open && !el.settings.contains(e.target)) el.settings.open = false;
+});
+
 el.revBtn.addEventListener('click', () => {
   if (state.busy || state.auto) return;
   useRev = !useRev;
@@ -714,6 +763,7 @@ el.revBtn.addEventListener('click', () => {
   // 아직 아무것도 안 뽑았으면 덱을 조용히 다시 놓고, 아니면 다음 섞기부터
   if (!state.drawn.length && !state.done) {
     state.deck = shuffled(useRev ? undefined : 0);
+    paintFan();
     toast(useRev ? '역방향을 씁니다' : '전부 정방향으로 놓았습니다');
   } else {
     toast('다음 섞기부터 적용됩니다');
@@ -760,6 +810,7 @@ window.addEventListener('resize', () => {
 });
 
 buildTopics();
+syncFaceBtn();
 
 /* ── 시작 ───────────────────────────────────────────────── */
 renderLog();

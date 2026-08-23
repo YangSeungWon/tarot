@@ -113,7 +113,7 @@ button{ font:inherit; color:inherit; }
 .table{ padding:0 1rem; }
 .spreadbar{
   display:flex; justify-content:center; gap:.4rem;
-  flex-wrap:wrap; margin:0 auto; max-width:34rem;
+  flex-wrap:wrap; margin:0 auto; max-width:52rem;
 }
 .spread-btn{
   display:flex; align-items:baseline; gap:.5rem;
@@ -162,6 +162,13 @@ button{ font:inherit; color:inherit; }
   animation-delay:var(--d);
 }
 .fan-card svg{ width:100%; height:100%; display:block; border-radius:5px; }
+/* 앞면 보고 뽑기: 자리마다 카드가 이미 정해져 있다는 걸 눈으로 보는 모드 */
+.fan-card img{
+  width:100%; height:100%; object-fit:cover;
+  display:block; border-radius:5px;
+}
+.fan-card img.is-rev{ transform:rotate(180deg); }
+.board.is-face .card{ transition:none; }
 .fan-card:hover,.fan-card:focus-visible{
   --lift:-30px;
   filter:drop-shadow(0 12px 22px rgba(201,162,39,.4));
@@ -289,7 +296,7 @@ button{ font:inherit; color:inherit; }
 }
 
 .fan-swipe{
-  text-align:center; margin-top:1rem;
+  text-align:center; margin-top:.4rem;
   font-size:.72rem; letter-spacing:.08em; color:var(--mist); opacity:.75;
 }
 .fan-swipe::before{ content:"↔  "; color:var(--gilt); }
@@ -297,7 +304,9 @@ button{ font:inherit; color:inherit; }
 .fan-tools{
   display:flex; align-items:center; justify-content:center;
   gap:clamp(.6rem,2vw,1.25rem); flex-wrap:wrap;
-  margin:0 0 clamp(.6rem,1.8vw,1.05rem);
+  /* 부채가 양옆으로 내려앉아 생긴 가운데 아래 빈 자리에 얹습니다 */
+  margin:var(--tools-pull, -5.5rem) 0 0;
+  position:relative; z-index:20;
 }
 .fan-btns{ display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; }
 .fan-hint{ font-size:.85rem; color:var(--mist); letter-spacing:.02em; }
@@ -306,6 +315,26 @@ button{ font:inherit; color:inherit; }
   font-variant-numeric:tabular-nums;
   color:var(--gilt); margin-left:.45rem; letter-spacing:.08em;
 }
+/* 설정: 자주 만지지 않는 것들은 접어둡니다 */
+.settings{ position:relative; }
+.settings-toggle{
+  list-style:none; cursor:pointer;
+  font-size:.8rem; letter-spacing:.06em; color:var(--mist);
+  padding:.35rem .2rem; border-bottom:1px solid transparent;
+  transition:color .25s, border-color .25s;
+}
+.settings-toggle::-webkit-details-marker{ display:none; }
+.settings-toggle:hover{ color:var(--parchment); border-bottom-color:var(--gilt-lo); }
+.settings[open] .settings-toggle{ color:var(--parchment); border-bottom-color:var(--gilt); }
+.settings-body{
+  position:absolute; top:calc(100% + .6rem); left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; gap:.45rem;
+  padding:.7rem; border-radius:14px;
+  background:var(--veil); border:1px solid var(--veil-line);
+  box-shadow:0 14px 34px rgba(0,0,0,.55);
+  z-index:60; white-space:nowrap;
+}
+
 .btn-toggle{ border-style:dashed; }
 .btn-toggle.is-on{
   border-style:solid; border-color:var(--gilt-lo);
@@ -320,11 +349,42 @@ button{ font:inherit; color:inherit; }
   margin:clamp(1rem,3vw,1.9rem) auto 0; max-width:64rem;
 }
 .board[data-spread="one"]{ grid-template-columns:repeat(1,auto); }
-.board[data-spread="three"]{ grid-template-columns:repeat(3,auto); }
+.board[data-spread="three"],
+.board[data-spread="act"]{ grid-template-columns:repeat(3,auto); }
 /* 켈틱 크로스: 십자는 세로 3장, 지팡이는 4장입니다. 같은 줄 격자에 올리면
    3과 4가 어긋나 지팡이만 아래로 삐져나옵니다. 반 칸 단위의 8칸 격자에
    올려 지팡이는 1-2, 3-4, 5-6, 7-8을, 십자는 반 칸 밀린 2-3, 4-5, 6-7을
    쓰면 십자는 붙어 있으면서 두 덩어리의 중심이 맞습니다. */
+/* 선택: 지금 상황 아래로 두 갈래가 나란히 내려갑니다. */
+.board[data-spread="choice"]{
+  --card-w:clamp(88px, 8vw, 112px);
+  grid-template-columns:repeat(3, auto);
+}
+.board[data-spread="choice"] .slot:nth-child(1){ grid-column:2; grid-row:1; }
+.board[data-spread="choice"] .slot:nth-child(2){ grid-column:1; grid-row:2; }
+.board[data-spread="choice"] .slot:nth-child(3){ grid-column:1; grid-row:3; }
+.board[data-spread="choice"] .slot:nth-child(4){ grid-column:3; grid-row:2; }
+.board[data-spread="choice"] .slot:nth-child(5){ grid-column:3; grid-row:3; }
+
+/* 말굽: 왼쪽 위에서 시작해 아래를 돌아 오른쪽 위로 올라갑니다. */
+.board[data-spread="horseshoe"]{
+  --card-w:clamp(72px, 6.6vw, 100px);
+  grid-template-columns:repeat(5, auto);
+}
+.board[data-spread="horseshoe"] .slot:nth-child(1){ grid-column:1; grid-row:1; }
+.board[data-spread="horseshoe"] .slot:nth-child(2){ grid-column:2; grid-row:2; }
+.board[data-spread="horseshoe"] .slot:nth-child(3){ grid-column:2; grid-row:3; }
+.board[data-spread="horseshoe"] .slot:nth-child(4){ grid-column:3; grid-row:3; }
+.board[data-spread="horseshoe"] .slot:nth-child(5){ grid-column:4; grid-row:3; }
+.board[data-spread="horseshoe"] .slot:nth-child(6){ grid-column:4; grid-row:2; }
+.board[data-spread="horseshoe"] .slot:nth-child(7){ grid-column:5; grid-row:1; }
+
+/* 조디악: 열두 자리를 순서대로 읽습니다. */
+.board[data-spread="zodiac"]{
+  --card-w:clamp(68px, 6vw, 92px);
+  grid-template-columns:repeat(6, auto);
+}
+
 .board[data-spread="celtic"]{
   --card-w:clamp(84px, 7vw, 100px);
   grid-template-columns:repeat(4, auto);
@@ -608,15 +668,29 @@ button{ font:inherit; color:inherit; }
 
 /* ── 반응형 ───────────────────────────────────────────────── */
 @media (max-width:760px){
-  :root{ --card-w:clamp(74px,23vw,104px); --draw-lift:38px; --draw-exit:70px; }
+  :root{ --card-w:clamp(74px,23vw,104px); --draw-lift:38px; --draw-exit:70px;
+         --tools-pull:-1.6rem; }
+  /* 배치가 일곱 개라 좁은 화면에서는 버튼을 조입니다 */
+  .spreadbar{ gap:.3rem; }
+  .spread-btn{ padding:.4rem .75rem; gap:.35rem; }
+  .spread-btn .spread-name{ font-size:.82rem; }
+  .spread-btn .spread-n{ font-size:.78rem; }
   .fan-tools{ flex-direction:column; gap:.85rem; }
-  .board[data-spread="three"]{ grid-template-columns:repeat(3,auto); }
+  .board[data-spread="three"],
+.board[data-spread="act"]{ grid-template-columns:repeat(3,auto); }
   /* 켈틱 크로스는 십자 모양 자체가 정보입니다. 좁은 화면에서도 1~6은
      십자로 세우고, 지팡이(7~10)만 아래 한 줄로 눕힙니다.
      12칸 격자에 걸쳐 놓아야 세 장짜리 줄과 네 장짜리 줄이 같이 맞습니다. */
   /* 켈틱은 좁은 화면에서도 같은 모양을 씁니다. 자리 번호가 그림을 전제로 한
      이름이라(05는 가운데 위, 07에서 10은 올라가는 세로줄) 모양을 바꾸면
      이름이 뜻을 잃습니다. 카드 크기만 줄입니다. */
+  .board[data-spread="horseshoe"]{ --card-w:min(17.5vw, 70px); }
+  .board[data-spread="zodiac"]{
+    --card-w:min(27vw, 104px);
+    grid-template-columns:repeat(3, auto);
+  }
+  .board[data-spread="choice"]{ --card-w:min(27vw, 104px); }
+
   .board[data-spread="celtic"]{
     --card-w:min(20.5vw, 82px);
     gap:0 .28rem;

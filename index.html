@@ -64,23 +64,37 @@
         <span class="spread-n">1</span><span class="spread-name">원 카드</span></button>
       <button class="spread-btn" data-spread="three" type="button">
         <span class="spread-n">3</span><span class="spread-name">쓰리 카드</span></button>
+      <button class="spread-btn" data-spread="act" type="button">
+        <span class="spread-n">3</span><span class="spread-name">무엇을 할까</span></button>
+      <button class="spread-btn" data-spread="choice" type="button">
+        <span class="spread-n">5</span><span class="spread-name">선택</span></button>
+      <button class="spread-btn" data-spread="horseshoe" type="button">
+        <span class="spread-n">7</span><span class="spread-name">말굽</span></button>
       <button class="spread-btn" data-spread="celtic" type="button">
         <span class="spread-n">10</span><span class="spread-name">켈틱 크로스</span></button>
+      <button class="spread-btn" data-spread="zodiac" type="button">
+        <span class="spread-n">12</span><span class="spread-name">조디악</span></button>
     </div>
 
     <div class="fan-stage">
+      <div class="fan-scroll" id="fan-scroll">
+        <div class="fan" id="fan" role="group" aria-label="펼쳐진 덱 78장, 카드를 골라 뽑으세요"></div>
+      </div>
+      <p class="fan-swipe" id="fan-swipe" hidden>옆으로 밀어서 전체 보기</p>
       <div class="fan-tools">
         <p class="fan-hint" id="fan-hint">덱에서 카드를 고르세요 <b id="counter">0 / 1</b></p>
         <div class="fan-btns">
           <button class="btn btn-ghost" id="btn-auto" type="button">자동으로 뽑기</button>
           <button class="btn btn-ghost" id="btn-shuffle" type="button">덱 섞기</button>
-          <button class="btn btn-toggle is-on" id="btn-rev" type="button" aria-pressed="true">역방향 켬</button>
         </div>
+        <details class="settings" id="settings">
+          <summary class="settings-toggle">설정</summary>
+          <div class="settings-body">
+            <button class="btn btn-toggle is-on" id="btn-rev" type="button" aria-pressed="true">역방향 켬</button>
+            <button class="btn btn-toggle" id="btn-face" type="button" aria-pressed="false">앞면 보고 뽑기 끔</button>
+          </div>
+        </details>
       </div>
-      <div class="fan-scroll" id="fan-scroll">
-        <div class="fan" id="fan" role="group" aria-label="펼쳐진 덱 78장, 카드를 골라 뽑으세요"></div>
-      </div>
-      <p class="fan-swipe" id="fan-swipe" hidden>옆으로 밀어서 전체 보기</p>
     </div>
 
     <div class="board" id="board" data-spread="one"></div>
