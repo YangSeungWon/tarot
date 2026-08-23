@@ -6,7 +6,7 @@ export const UI = {
   topicHint:  { ko:'주제', en:'Topic' },
   askAsk:     { ko:'무엇에 대해 보시나요?', en:'What is this about?' },
   hintPick:   { ko:'덱에서 카드를 고르세요', en:'Pick a card from the deck' },
-  hintRail:   { ko:'돌려서 가운데로 놓고 누르세요', en:'Spin to the centre, then tap' },
+  hintSwipe:  { ko:'밀어서 넘기고, 카드를 누르세요', en:'Swipe through, then tap a card' },
   hintDone:   { ko: n => `${n}장을 모두 뽑았습니다.`, en: n => `All ${n} cards are drawn.` },
   shuffling:  { ko:'덱을 섞는 중', en:'Shuffling the deck' },
   auto:       { ko:'자동으로 뽑기', en:'Draw for me' },

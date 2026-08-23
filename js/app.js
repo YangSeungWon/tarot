@@ -86,9 +86,10 @@ const label = card => lang === 'ko' ? card.name.en : '';
    ──────────────────────────────────────────────────────────── */
 // 좁은 화면에서는 부채 대신 '돌려서 고르는 띠'를 씁니다.
 const isRail = () => window.innerWidth < 760;
-// gap이 곧 감도입니다. 손가락이 400px 움직였을 때 지나가는 장수 = 400/gap.
-// R은 기울기가 최대가 되는 거리 — 화면 절반쯤에서 30도가 되도록 맞춥니다.
-const RAIL = { gap: 56, rot: 30, drop: 44, R: 200, top: 46, bottom: 74, tMax: 1.7, tDrop: 1.25 };
+// gap은 카드 한 장이 드러나는 폭이자 누를 수 있는 폭입니다. 누른 카드가
+// 그대로 뽑히므로 손가락이 닿을 만큼은 되어야 합니다.
+// R은 기울기가 최대가 되는 거리로, 화면 절반쯤에서 30도가 되도록 맞춥니다.
+const RAIL = { gap: 68, rot: 30, drop: 44, R: 200, top: 46, bottom: 74, tMax: 1.7, tDrop: 1.25 };
 let rail = null, railRaf = 0, centerIdx = -1, railLo = 0, railHi = -1;
 
 const THETA   = () => 23;                                   // 부채 반각(도)
@@ -163,7 +164,6 @@ function layoutRail() {
   el.fan.style.setProperty('--rail-top', RAIL.top + 'px');
   el.fan.style.setProperty('--rail-bottom', RAIL.bottom + 'px');
   // 표식은 .fan-stage 기준이라 버튼 줄 높이까지 더해야 카드에 맞습니다.
-  el.stage.style.setProperty('--mark-top', (el.scroll.offsetTop + RAIL.top - 6) + 'px');
   cards.forEach(b => { b.dataset.far = '1'; });
   railLo = 0; railHi = cards.length - 1; centerIdx = -1;
   calibrateRail();
@@ -210,12 +210,9 @@ function railTick() {
   }
   railLo = lo; railHi = hi;
 
-  const near = Math.max(0, Math.min(n - 1, Math.round(mid)));
-  if (near !== centerIdx) {
-    cards[centerIdx]?.classList.remove('is-center');
-    centerIdx = near;
-    cards[centerIdx]?.classList.add('is-center');
-  }
+  // 가운데가 어느 카드인지는 자동 뽑기와 섞기가 쓰지만, 화면에 표시하지는
+  // 않습니다. 누른 카드가 뽑히므로 가운데가 특별한 자리가 아닙니다.
+  centerIdx = Math.max(0, Math.min(n - 1, Math.round(mid)));
 }
 
 function centerOn(i, smooth) {
@@ -259,31 +256,12 @@ function renderFan() {
     b.style.setProperty('--sd', (i * 5) + 'ms');   // 섞은 뒤 펼침 시차
     b.setAttribute('aria-label', T('ariaPick', i + 1));
     b.innerHTML = '<svg><use href="#cardback"/></svg>';
-    b.addEventListener('click', e => pick(b, e));
+    b.addEventListener('click', e => take(b, e));
     frag.appendChild(b);
   }
   el.fan.appendChild(frag);
   paintFan();
   relayout();
-}
-
-// 띠에서는 어느 카드를 짚었는지가 아니라 띠의 어디를 눌렀는지로 판단합니다.
-// 가운데 구역(테두리 좌우로 넉넉히)을 누르면 테두리 안의 카드를 뽑고,
-// 그 바깥을 누르면 그 카드를 가운데로 돌려놓습니다. 카드 폭이 80px이라
-// 그것만 정확히 짚으라고 하면 손가락에 가혹합니다.
-const CENTER_HIT = 78;   // 가운데 구역의 반폭(px)
-
-function inCenterZone(ev) {
-  const r = el.scroll.getBoundingClientRect();
-  return Math.abs(ev.clientX - (r.left + r.width / 2)) <= CENTER_HIT;
-}
-
-function pick(btn, ev) {
-  if (!isRail()) return take(btn, ev);
-  const i = +btn.dataset.n;
-  // 키보드로 활성화하면 좌표가 없습니다(detail 0). 그때는 가운데 카드면 바로 뽑습니다.
-  if (ev && ev.detail === 0 && i === centerIdx) return take(btn, ev);
-  centerOn(i, true);
 }
 
 function relayout() {
@@ -294,13 +272,13 @@ function relayout() {
   if (railMode) { layoutRail(); el.swipe.hidden = true; }
   else {
     rail = null; centerIdx = -1;
-    [...el.fan.children].forEach(b => { delete b.dataset.far; b.classList.remove('is-center'); });
+    [...el.fan.children].forEach(b => { delete b.dataset.far; });
     applySeats();
   }
 }
 
 const LIFT_MS = () => (calm() ? 260 : 380);
-const hintLead = () => isRail() ? T('hintRail') : T('hintPick');
+const hintLead = () => T(isRail() ? 'hintSwipe' : 'hintPick');
 
 // 카드가 빠져나가는 동안 hover를 잠급니다. 포인터가 실제로 움직이면 풀립니다.
 let hoverArmed = null;
@@ -910,16 +888,6 @@ el.logList.addEventListener('click', e => {
     el.reading.scrollIntoView({ behavior: 'smooth' });
   }
 });
-
-// 가운데 구역의 클릭은 카드 핸들러보다 먼저 가로챕니다.
-el.scroll.addEventListener('click', e => {
-  if (!isRail() || state.done || state.busy || state.auto) return;
-  if (e.detail === 0 || !inCenterZone(e)) return;   // 좌표 없는 클릭은 카드 쪽에서 처리
-  const b = el.fan.children[centerIdx];
-  if (!b || b.classList.contains('is-drawing')) return;
-  e.stopPropagation();
-  take(b, e);
-}, true);
 
 el.scroll.addEventListener('scroll', () => {
   if (rail && !railRaf) railRaf = requestAnimationFrame(railTick);

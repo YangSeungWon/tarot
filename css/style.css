@@ -256,8 +256,10 @@ body[data-lang="en"] .wordmark-en{
   width:auto; height:auto;
   padding:var(--rail-top) var(--rail-pad) var(--rail-bottom);
 }
+/* static 이어야 합니다. relative 로 두면 기본 규칙의 top:var(--fan-top) 이
+   되살아나 카드가 그만큼 아래로 밀립니다. */
 .fan.is-rail .fan-card{
-  position:relative; flex:0 0 var(--card-w); height:var(--card-h);
+  position:static; flex:0 0 var(--card-w); height:var(--card-h);
   margin:0 calc(var(--rail-gap) - var(--card-w)) 0 0;
   scroll-snap-align:center;
   transform-origin:50% 50%;
@@ -267,12 +269,12 @@ body[data-lang="en"] .wordmark-en{
 }
 @keyframes dealRail{ from{ opacity:0; } }
 .fan.is-rail .fan-card:last-child{ margin-right:0; }
+/* 누른 카드가 그대로 뽑히므로, 눌리는 순간의 반응은 그 카드에 붙습니다 */
+.fan.is-rail .fan-card:active{
+  filter:drop-shadow(0 8px 18px rgba(201,162,39,.5));
+}
 .fan.is-rail .fan-card[data-far]{ visibility:hidden; }
 
-/* 가운데 자리에 온 카드 */
-.fan.is-rail .fan-card.is-center{
-  filter:drop-shadow(0 10px 20px rgba(201,162,39,.45));
-}
 
 /* 뽑기: 가운데에서 똑바로 들어올려 넘깁니다 */
 .fan.is-rail .fan-card.is-drawing{
@@ -289,15 +291,6 @@ body[data-lang="en"] .wordmark-en{
 /* 섞기는 밝기와 회전만 씁니다 (자리는 띠가 정합니다) */
 .fan.is-rail.s-gather .fan-card{ opacity:.14; }
 
-/* 고를 자리를 표시하는 테두리 */
-.fan-stage.is-rail::before{
-  content:""; position:absolute; left:50%; top:var(--mark-top);
-  width:calc(var(--card-w) + 12px); height:calc(var(--card-h) + 12px);
-  margin-left:calc((var(--card-w) + 12px) / -2);
-  border:1px solid var(--gilt); border-radius:9px;
-  opacity:.32; pointer-events:none;
-  z-index:385;   /* 옆 카드(<=370) 위, 가운데 카드(400) 아래 */
-}
 
 /* 3. 펼치기 — 왼쪽부터 차례로 리본을 긋듯 */
 .fan.s-spread .fan-card{
@@ -699,7 +692,7 @@ body[data-lang="en"] .wordmark-en{
 /* ── 반응형 ───────────────────────────────────────────────── */
 @media (max-width:760px){
   :root{ --card-w:clamp(74px,23vw,104px); --draw-lift:38px; --draw-exit:70px;
-         --tools-pull:-1.6rem; }
+         --tools-pull:0rem; }
   /* 배치가 일곱 개라 좁은 화면에서는 버튼을 조입니다 */
   .spreadbar{ gap:.3rem; }
   .spread-btn{ padding:.4rem .75rem; gap:.35rem; }
