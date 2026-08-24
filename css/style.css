@@ -30,14 +30,16 @@
 
   /* 해석 한 장에 크기는 셋만 씁니다: 이름 / 읽는 글 / 라벨.
      자리 이름도 방향도 키워드도 다 라벨이라 같은 크기를 씁니다.
-     서로를 가르는 건 글꼴과 색이지 크기가 아닙니다. */
-  --rd-title: 1.3rem;
-  --rd-text:  1.05rem;
-  --rd-label: .8rem;
+     서로를 가르는 건 글꼴과 색이지 크기가 아닙니다.
+     읽는 글은 1rem(16px) 아래로 내려가지 않고, 라벨은 .75rem(12px)이
+     바닥입니다. 바닥을 지키려고 rem 바닥은 브라우저 기본값 그대로 둡니다. */
+  --rd-title: 1.35rem;
+  --rd-text:  1.1rem;
+  --rd-label: .85rem;
 }
 
 *,*::before,*::after{ box-sizing:border-box; }
-html{ -webkit-text-size-adjust:100%; font-size:106.25%; }  /* 16px -> 17px */
+html{ -webkit-text-size-adjust:100%; }
 body{
   margin:0;
   background:
@@ -76,7 +78,7 @@ button{ font:inherit; color:inherit; }
 .lang{
   position:absolute; top:.7rem; right:.9rem;
   background:none; border:0; cursor:pointer;
-  font-family:var(--f-body); font-size:.82rem; font-weight:400;
+  font-family:var(--f-body); font-size:.88rem; font-weight:400;
   letter-spacing:.06em; color:var(--mist);
   padding:.3rem .25rem; border-bottom:1px solid transparent;
   transition:color .25s, border-color .25s;
@@ -89,7 +91,7 @@ button{ font:inherit; color:inherit; }
 }
 .wordmark-ko{
   font-family:var(--f-display); font-weight:700;
-  font-size:clamp(2.4rem,6.5vw,3.9rem); letter-spacing:.06em;
+  font-size:clamp(2.55rem,6.5vw,4.15rem); letter-spacing:.06em;
   background:linear-gradient(178deg,#f3e2b0 8%,var(--gilt) 52%,#7d6320 98%);
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
@@ -97,13 +99,13 @@ button{ font:inherit; color:inherit; }
 body[data-lang="en"] .wordmark-ko{ display:none; }
 body[data-lang="en"] .wordmark-en{
   font-family:var(--f-latin); font-style:normal; font-weight:400;
-  font-size:clamp(2.4rem,6.5vw,3.9rem); letter-spacing:.06em;
+  font-size:clamp(2.55rem,6.5vw,4.15rem); letter-spacing:.06em;
   background:linear-gradient(178deg,#f3e2b0 8%,var(--gilt) 52%,#7d6320 98%);
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
 .wordmark-en{
   font-family:var(--f-latin); font-style:italic; font-weight:300;
-  font-size:clamp(.85rem,2vw,1.15rem); letter-spacing:.22em;
+  font-size:clamp(.9rem,2vw,1.2rem); letter-spacing:.22em;
   color:var(--mist);
 }
 /* ── 무엇에 대한 리딩인가 ─────────────────────────────────── */
@@ -112,7 +114,7 @@ body[data-lang="en"] .wordmark-en{
   max-width:30rem; margin:clamp(.6rem,1.8vw,.9rem) auto 0;
 }
 .ask-cat, .ask-q{
-  font-family:var(--f-body); font-size:.92rem; font-weight:400;
+  font-family:var(--f-body); font-size:1rem; font-weight:400;
   background:transparent; color:var(--parchment);
   border:1px solid var(--veil-line); border-radius:999px;
   padding:.45rem .9rem;
@@ -153,10 +155,10 @@ body[data-lang="en"] .wordmark-en{
 }
 .spread-btn:hover{ border-color:var(--gilt-lo); color:var(--parchment); }
 .spread-btn .spread-n{
-  font-family:var(--f-body); font-weight:600; font-size:.9rem;
+  font-family:var(--f-body); font-weight:600; font-size:.95rem;
   font-variant-numeric:tabular-nums; color:var(--gilt); opacity:.9;
 }
-.spread-btn .spread-name{ font-size:.9rem; }
+.spread-btn .spread-name{ font-size:.95rem; }
 .spread-btn.is-on{
   background:rgba(201,162,39,.09);
   border-color:var(--gilt); color:var(--parchment);
@@ -321,7 +323,7 @@ body[data-lang="en"] .wordmark-en{
 
 .fan-swipe{
   text-align:center; margin-top:.4rem;
-  font-size:.76rem; letter-spacing:.08em; color:var(--mist); opacity:1;
+  font-size:.8rem; letter-spacing:.08em; color:var(--mist); opacity:1;
 }
 .fan-swipe::before{ content:"↔  "; color:var(--gilt); }
 
@@ -333,9 +335,9 @@ body[data-lang="en"] .wordmark-en{
   position:relative; z-index:20;
 }
 .fan-btns{ display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; }
-.fan-hint{ font-size:.9rem; color:var(--mist); letter-spacing:.02em; }
+.fan-hint{ font-size:.95rem; color:var(--mist); letter-spacing:.02em; }
 .fan-hint b{
-  font-family:var(--f-body); font-weight:500; font-size:.85rem;
+  font-family:var(--f-body); font-weight:500; font-size:.9rem;
   font-variant-numeric:tabular-nums;
   color:var(--gilt); margin-left:.45rem; letter-spacing:.08em;
 }
@@ -343,7 +345,7 @@ body[data-lang="en"] .wordmark-en{
 .settings{ position:relative; }
 .settings-toggle{
   list-style:none; cursor:pointer;
-  font-size:.84rem; letter-spacing:.06em; color:var(--mist);
+  font-size:.88rem; letter-spacing:.06em; color:var(--mist);
   padding:.35rem .2rem; border-bottom:1px solid transparent;
   transition:color .25s, border-color .25s;
 }
@@ -418,10 +420,10 @@ body[data-lang="en"] .wordmark-en{
 }
 /* 10장이라 자리마다 붙는 글자가 그대로 높이가 됩니다. 켈틱에서만 조입니다. */
 .board[data-spread="celtic"] .slot{ margin:0; }
-.board[data-spread="celtic"] .slot-label{ min-height:2.3em; margin-bottom:.35rem; font-size:.7rem; }
-.board[data-spread="celtic"] .slot-label i{ font-size:.8rem; }
-.board[data-spread="celtic"] .slot-caption{ margin-top:.4rem; font-size:.85rem; }
-.board[data-spread="celtic"] .cross-note{ margin-top:.3rem; padding-top:.3rem; font-size:.7rem; }
+.board[data-spread="celtic"] .slot-label{ min-height:2.3em; margin-bottom:.35rem; font-size:.75rem; }
+.board[data-spread="celtic"] .slot-label i{ font-size:.85rem; }
+.board[data-spread="celtic"] .slot-caption{ margin-top:.4rem; font-size:.9rem; }
+.board[data-spread="celtic"] .cross-note{ margin-top:.3rem; padding-top:.3rem; font-size:.75rem; }
 .board[data-spread="celtic"] .slot:nth-child(5) { grid-column:2; grid-row:2 / span 2; }
 .board[data-spread="celtic"] .slot:nth-child(1),
 .board[data-spread="celtic"] .slot:nth-child(2) { grid-column:2; grid-row:4 / span 2; }
@@ -442,13 +444,13 @@ body[data-lang="en"] .wordmark-en{
 .slot{ width:var(--card-w); }
 .slot-label{
   display:block; min-height:2.8em; text-align:center; margin-bottom:.55rem;
-  font-family:var(--f-body); font-size:.78rem; line-height:1.45;
+  font-family:var(--f-body); font-size:.82rem; line-height:1.45;
   font-variant-numeric:tabular-nums; letter-spacing:.06em;
   color:var(--mist);
 }
 /* 자리 이름은 실제로 읽는 글자입니다. 번호보다 크고 밝게. */
 .slot-label i{
-  font-style:normal; font-size:.92rem; font-weight:400;
+  font-style:normal; font-size:1rem; font-weight:400;
   letter-spacing:.01em; color:var(--parchment-dim);
 }
 /* 빈 자리는 뒤집힌 카드가 아니라 '카드가 놓일 자리'로 보여야 합니다.
@@ -520,7 +522,7 @@ body[data-lang="en"] .wordmark-en{
 
 .slot-caption{
   margin-top:.6rem; text-align:center;
-  font-family:var(--f-display); font-size:1rem; line-height:1.4;
+  font-family:var(--f-display); font-size:1.05rem; line-height:1.4;
   color:var(--parchment); opacity:0; transition:opacity .4s .5s;
 }
 .slot.is-filled .slot-caption{ opacity:1; }
@@ -528,13 +530,13 @@ body[data-lang="en"] .wordmark-en{
 .cross-note{
   display:block; margin-top:.35rem; padding-top:.35rem;
   border-top:1px solid var(--veil-line);
-  font-family:var(--f-body); font-size:.78rem; letter-spacing:.02em;
+  font-family:var(--f-body); font-size:.82rem; letter-spacing:.02em;
   color:var(--mist);
 }
 .cross-note b{ color:var(--parchment); font-weight:400; }
 .cross-note i{ font-style:normal; color:var(--vermilion-lt); }
 .slot-caption em{
-  display:block; font-style:normal; font-size:.76rem;
+  display:block; font-style:normal; font-size:.8rem;
   font-family:var(--f-body); letter-spacing:.04em;
   color:var(--vermilion-lt);
 }
@@ -546,13 +548,13 @@ body[data-lang="en"] .wordmark-en{
 }
 .btn{
   padding:.6rem 1.4rem; border-radius:999px; cursor:pointer;
-  font-size:.85rem; letter-spacing:.05em;
+  font-size:.9rem; letter-spacing:.05em;
   border:1px solid var(--veil-line); background:transparent;
   color:var(--parchment-dim);
   transition:border-color .25s, color .25s, background .25s;
 }
 .btn:hover{ border-color:var(--gilt); color:var(--parchment); background:rgba(201,162,39,.07); }
-.btn-quiet{ border-color:transparent; font-size:.78rem; color:var(--mist); padding:.3rem .7rem; }
+.btn-quiet{ border-color:transparent; font-size:.82rem; color:var(--mist); padding:.3rem .7rem; }
 .btn-quiet:hover{ background:transparent; border-color:var(--veil-line); }
 
 /* ── 해석 ─────────────────────────────────────────────────── */
@@ -563,22 +565,22 @@ body[data-lang="en"] .wordmark-en{
 }
 .reading-cat{
   display:inline-block; margin-bottom:.7rem;
-  font-size:.72rem; letter-spacing:.14em; color:var(--gilt);
+  font-size:.78rem; letter-spacing:.14em; color:var(--gilt);
   border:1px solid var(--gilt-lo); border-radius:999px; padding:.15rem .7rem;
 }
 .reading-q{
-  font-family:var(--f-display); font-size:1.45rem; line-height:1.5;
+  font-family:var(--f-display); font-size:1.55rem; line-height:1.5;
   color:var(--parchment); max-width:26rem; margin:0 auto;
 }
 .reading-spread{
-  margin-top:.6rem; font-size:.78rem; letter-spacing:.1em; color:var(--mist);
+  margin-top:.6rem; font-size:.82rem; letter-spacing:.1em; color:var(--mist);
 }
 .reading-head .reading-spread::after{
   content:""; display:block; width:2.5rem; height:1px;
   background:var(--gilt); opacity:.6; margin:1rem auto 0;
 }
 .sec-title{
-  font-family:var(--f-display); font-size:1.4rem; letter-spacing:.06em;
+  font-family:var(--f-display); font-size:1.45rem; letter-spacing:.06em;
 }
 .reading-head .sec-title::after{
   content:""; display:block; width:2.5rem; height:1px;
@@ -670,27 +672,27 @@ body[data-lang="en"] .wordmark-en{
 .log-item{
   display:grid; grid-template-columns:1fr auto; gap:.15rem .9rem;
   padding:.95rem 0; border-bottom:1px solid rgba(58,45,92,.5);
-  font-size:.85rem;
+  font-size:.9rem;
 }
 .log-meta{ display:flex; align-items:baseline; gap:.7rem; flex-wrap:wrap; }
 .log-q{
   grid-column:1 / -1;
-  font-family:var(--f-display); font-size:.95rem; color:var(--parchment);
+  font-family:var(--f-display); font-size:1rem; color:var(--parchment);
 }
 .log-cat{
-  font-size:.76rem; letter-spacing:.1em; color:var(--gilt);
+  font-size:.8rem; letter-spacing:.1em; color:var(--gilt);
   border:1px solid var(--gilt-lo); border-radius:999px; padding:.05rem .5rem;
 }
 .log-when{
-  font-family:var(--f-latin); font-size:.85rem;
+  font-family:var(--f-latin); font-size:.9rem;
   color:var(--mist); letter-spacing:.08em; min-width:8.5rem;
 }
-.log-spread{ color:var(--gilt); font-size:.78rem; letter-spacing:.08em; }
-.log-cards{ grid-column:1 / -1; color:var(--parchment-dim); font-size:.86rem; }
+.log-spread{ color:var(--gilt); font-size:.82rem; letter-spacing:.08em; }
+.log-cards{ grid-column:1 / -1; color:var(--parchment-dim); font-size:.9rem; }
 .log-open{
   grid-row:1; grid-column:2; align-self:start;
   border:0; background:none; cursor:pointer; padding:.2rem .4rem;
-  color:var(--mist); font-size:.8rem; letter-spacing:.1em;
+  color:var(--mist); font-size:.85rem; letter-spacing:.1em;
   border-bottom:1px solid transparent;
 }
 .log-open:hover{ color:var(--parchment); border-bottom-color:var(--gilt); }
@@ -700,7 +702,7 @@ body[data-lang="en"] .wordmark-en{
   max-width:44rem; margin:clamp(4rem,10vw,7rem) auto 0;
   padding:2rem 1.25rem 4rem; text-align:center;
   border-top:1px solid var(--veil-line);
-  color:var(--mist); font-size:.82rem; line-height:2;
+  color:var(--mist); font-size:.88rem; line-height:2;
 }
 .colo-link{
   color:var(--parchment-dim); text-decoration:none;
@@ -712,7 +714,7 @@ body[data-lang="en"] .wordmark-en{
 .toast{
   position:fixed; left:50%; bottom:2rem; transform:translate(-50%,1.5rem);
   background:var(--veil); border:1px solid var(--gilt-lo); border-radius:999px;
-  padding:.55rem 1.3rem; font-size:.82rem; color:var(--parchment);
+  padding:.55rem 1.3rem; font-size:.88rem; color:var(--parchment);
   opacity:0; pointer-events:none; transition:opacity .3s, transform .3s;
   z-index:50;
 }
@@ -740,11 +742,11 @@ body[data-lang="en"] .wordmark-en{
     flex:0 0 auto; scroll-snap-align:center;
     padding:.4rem .8rem; gap:.35rem;
   }
-  .spread-btn .spread-name{ font-size:.84rem; white-space:nowrap; }
-  .spread-btn .spread-n{ font-size:.8rem; }
+  .spread-btn .spread-name{ font-size:.88rem; white-space:nowrap; }
+  .spread-btn .spread-n{ font-size:.85rem; }
   /* 덱 아래 버튼이 셋이라 좁은 화면에서는 조여야 한 줄에 들어갑니다 */
   .fan-btns{ gap:.35rem; }
-  .fan-btns .btn{ padding:.45rem .85rem; font-size:.82rem; }
+  .fan-btns .btn{ padding:.45rem .85rem; font-size:.88rem; }
   .fan-tools{ flex-direction:column; gap:.85rem; }
   .board[data-spread="three"],
 .board[data-spread="act"]{ grid-template-columns:repeat(3,auto); }
@@ -765,9 +767,9 @@ body[data-lang="en"] .wordmark-en{
     --card-w:min(20.5vw, 82px);
     gap:0 .28rem;
   }
-  .board[data-spread="celtic"] .slot-label{ min-height:2.2em; font-size:.66rem; }
-  .board[data-spread="celtic"] .slot-label i{ font-size:.75rem; }
-  .board[data-spread="celtic"] .slot-caption{ font-size:.78rem; }
+  .board[data-spread="celtic"] .slot-label{ min-height:2.2em; }
+  .board[data-spread="celtic"] .slot-label i{ font-size:.8rem; }
+  .board[data-spread="celtic"] .slot-caption{ font-size:.82rem; }
   .entry{ grid-template-columns:calc(var(--card-w) * .8) 1fr; }
   .log-when{ min-width:0; }
 }
