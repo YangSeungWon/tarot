@@ -22,6 +22,7 @@ const el = {
   revBtn: $('#btn-rev'), faceBtn: $('#btn-face'), settings: $('#settings'),
   langBtn: $('#btn-lang'), bar: $('#spreadbar'),
   ask: $('.ask'), askCat: $('#ask-cat'), askQ: $('#ask-q'),
+  table: $('.table'),
 };
 
 let useRev = true;
@@ -413,6 +414,9 @@ async function shuffleDeck(restart = false) {
   if (restart) {                      // 판을 비우고 78장을 통째로
     state.drawn = [];
     state.done = false;
+    // 처음부터 다시는 판만이 아니라 무엇을 물었는지도 처음으로 돌립니다
+    setAsk();
+    state.ask = readAsk();
     el.reading.innerHTML = '';
     el.actions.hidden = true;
     renderBoard();
@@ -682,15 +686,16 @@ function renderReading() {
              src="/assets/cards/${c.id}.webp" alt="${L(c.name)}" loading="lazy"></div>
         <div>
           <p class="entry-pos"><span class="entry-num">${String(i + 1).padStart(2, '0')}</span>${L(spread.positions)[i]}</p>
-          <h3 class="entry-name">${L(c.name)}<span class="entry-numeral">${label(c)}</span>
-            <span class="entry-dir ${pick.rev ? 'dir-rev' : 'dir-up'}">${pick.rev ? T('reversed') : T('upright')}</span>
-          </h3>
+          <h3 class="entry-name">${L(c.name)}${label(c) ? `<span class="entry-numeral">${label(c)}</span>` : ''}${pick.rev ? `<span class="entry-dir">${T('reversed')}</span>` : ''}</h3>
           <ul class="entry-kw">${L(c.k).map(k => `<li>${k}</li>`).join('')}</ul>
           <p class="entry-text">${L(pick.rev ? c.r : c.u)}</p>
           ${lens && c.t?.[lens] ? `<p class="entry-topic"><span>${L(LENS[lens])}</span>${L(c.t[lens][pick.rev ? 'r' : 'u'])}</p>` : ''}
         </div>
       </article>`;
-    }).join('');
+    }).join('') +
+    `<div class="reading-foot">
+       <button class="btn btn-ghost reading-restart" type="button">${T('restart')}</button>
+     </div>`;
 }
 
 function finish() {
@@ -879,6 +884,11 @@ el.bar.addEventListener('click', e => {
 });
 el.langBtn.addEventListener('click', switchLang);
 
+el.reading.addEventListener('click', e => {
+  if (!e.target.closest('.reading-restart')) return;
+  el.table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  shuffleDeck(true);
+});
 el.shuffleBtn.addEventListener('click', () => shuffleDeck(false));
 el.restartBtn.addEventListener('click', () => shuffleDeck(true));
 el.autoBtn.addEventListener('click', autoDraw);
