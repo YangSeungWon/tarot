@@ -585,6 +585,18 @@ function buildSpreads() {
   }).join('');
 }
 
+/* 좁은 화면에서 배치 줄은 가로로 스크롤됩니다. 고른 배치가 줄 밖에
+   있으면 보이지 않으니 가운데로 끌어옵니다. 페이지가 세로로 튀지 않도록
+   scrollIntoView 대신 scrollLeft를 직접 씁니다. */
+function centerSpread() {
+  const bar = el.bar;
+  if (bar.scrollWidth <= bar.clientWidth + 1) return;
+  const b = bar.querySelector('.spread-btn.is-on');
+  if (!b) return;
+  const to = b.offsetLeft - (bar.clientWidth - b.offsetWidth) / 2;
+  bar.scrollTo({ left: Math.max(0, to), behavior: 'smooth' });
+}
+
 function applyUI() {
   document.documentElement.lang = lang;
   document.body.dataset.lang = lang;
@@ -612,6 +624,7 @@ function applyUI() {
   ci.textContent = T('cardIndex');
   ci.href = lang === 'ko' ? '/card/' : '/en/card/';
   buildSpreads();
+  centerSpread();
   buildTopics();
   syncRevBtn();
   syncFaceBtn();
@@ -754,6 +767,7 @@ function reset(key = state.key) {
   el.actions.hidden = true;
   document.querySelectorAll('.spread-btn').forEach(b =>
     b.classList.toggle('is-on', b.dataset.spread === key));
+  centerSpread();
   renderBoard();
   renderFan();
   syncCounter();
