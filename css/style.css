@@ -376,7 +376,15 @@ body[data-lang="en"] .wordmark-en{
 }
 .board[data-spread="one"]{ grid-template-columns:repeat(1,auto); }
 .board[data-spread="three"],
-.board[data-spread="act"]{ grid-template-columns:repeat(3,auto); }
+.board[data-spread="act"],
+.board[data-spread="between"]{ grid-template-columns:repeat(3,auto); }
+/* 관계는 뽑는 차례와 놓는 자리가 다릅니다. 나를 뽑고, 상대를 뽑고,
+   마지막에 둘 사이를 뽑지만, 놓을 때는 그 사이가 가운데로 갑니다.
+   자리 이름이 '우리 사이'인데 옆에 서 있으면 말이 되지 않습니다. */
+.board[data-spread="between"] .slot{ grid-row:1; }
+.board[data-spread="between"] .slot:nth-child(1){ grid-column:1; }
+.board[data-spread="between"] .slot:nth-child(2){ grid-column:3; }
+.board[data-spread="between"] .slot:nth-child(3){ grid-column:2; }
 /* 켈틱 크로스: 십자는 세로 3장, 지팡이는 4장입니다. 같은 줄 격자에 올리면
    3과 4가 어긋나 지팡이만 아래로 삐져나옵니다. 반 칸 단위의 8칸 격자에
    올려 지팡이는 1-2, 3-4, 5-6, 7-8을, 십자는 반 칸 밀린 2-3, 4-5, 6-7을
@@ -748,8 +756,6 @@ body[data-lang="en"] .wordmark-en{
   .fan-btns{ gap:.35rem; }
   .fan-btns .btn{ padding:.45rem .85rem; font-size:.88rem; }
   .fan-tools{ flex-direction:column; gap:.85rem; }
-  .board[data-spread="three"],
-.board[data-spread="act"]{ grid-template-columns:repeat(3,auto); }
   /* 켈틱 크로스는 십자 모양 자체가 정보입니다. 좁은 화면에서도 1~6은
      십자로 세우고, 지팡이(7~10)만 아래 한 줄로 눕힙니다.
      12칸 격자에 걸쳐 놓아야 세 장짜리 줄과 네 장짜리 줄이 같이 맞습니다. */

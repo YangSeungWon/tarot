@@ -1212,6 +1212,8 @@ export const SPREADS = {
     positions:{ ko:['과거','현재','미래'], en:['Past','Present','Future'] } },
   act: { name:{ ko:'무엇을 할까', en:'What to Do' },
     positions:{ ko:['지금 상황','할 수 있는 일','그러면 어떻게 되나'], en:['Where you are','What you can do','Where that leads'] } },
+  between: { name:{ ko:'관계', en:'Between Us' },
+    positions:{ ko:['나','상대','우리 사이'], en:['You','Them','Between you'] } },
   choice: { name:{ ko:'선택', en:'The Choice' },
     positions:{ ko:['지금 상황','첫 번째 길','첫 번째 길의 끝','두 번째 길','두 번째 길의 끝'], en:['Where you are','The first road','End of the first','The second road','End of the second'] } },
   horseshoe: { name:{ ko:'말굽', en:'Horseshoe' },

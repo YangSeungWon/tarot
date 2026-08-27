@@ -4,7 +4,7 @@ import { UI } from './i18n.js';
 const $ = (s, r = document) => r.querySelector(s);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 // 공유 링크가 이 순서의 번호를 씁니다. 새 배치는 뒤에만 덧붙입니다.
-const SPREAD_ORDER = ['one','three','celtic','act','choice','horseshoe','zodiac'];
+const SPREAD_ORDER = ['one','three','celtic','act','choice','horseshoe','zodiac','between'];
 const LOG_KEY = 'tarot.log.v1';
 const REV_KEY = 'tarot.reversals.v1';
 const LANG_KEY = 'tarot.lang.v1';
